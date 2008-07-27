@@ -48,11 +48,14 @@ const
   cmMarkers = [cmIgnore, cmFwd, cmBack, cmBlock, cmEnd];
 
 type
+{$IFDEF old}
 //dummy class, for writeable TToken.EndPosition
   TCToken = class(TToken)
   protected
     property EndPos: TTextStreamPos read FEndPosition write FEndPosition;
   end;
+{$ELSE}
+{$ENDIF}
 
   { Parser class that will process a complete unit file and all of its
     include files, regarding directives.
@@ -167,6 +170,8 @@ type
   protected
     FCommentMarkers: TStringList;
     FMarkersOptional: boolean;
+  //in implementation section?
+    Impl: boolean;
   //Token chain
     Pending, BlockComment: TToken;
   //Tentative item, initialized by QualID.
@@ -191,12 +196,8 @@ type
       Pending comments from different streams are discarded.
   *)
   //apply comment to the (just created) item.
-  {$IFDEF old}
-    procedure ApplyComments(item: TPasItem);
-  {$ELSE}
     procedure FlushBackRems(item: TPasItem; tlim: TToken);
     procedure FlushFwdRems(item: TPasItem);
-  {$ENDIF}
   //try append description, return succ/fail
     function  AddDescription(var t: TToken; item: TPasItem = nil;
       fDestroy: boolean = True): boolean;
@@ -431,6 +432,16 @@ end;
 
 { ---------------------------------------------------------------------------- }
 
+procedure TParser.SetCommentMarkers(const Value: TStringList);
+begin
+  FCommentMarkers.Assign(Value);
+end;
+
+class function TParser.ShowVisibilities: TVisibilities;
+begin
+  Result := PasDoc_items.ShowVisibilities;
+end;
+
 procedure TParser.DoError(const AMessage: string;
   const AArguments: array of const);
 begin
@@ -543,7 +554,10 @@ var
     end else begin  //all conditions checked above!
     //append to preceding comment
       C.CommentContent := C.CommentContent + LineEnding + T.CommentContent;
+    {$IFDEF old}
       TCToken(c).EndPos := t.EndPosition;
+    {$ELSE}
+    {$ENDIF}
       FreeAndNil(T);
     end;
   end;
@@ -635,20 +649,13 @@ begin //PushComment
       FreeAndNil(BlockComment);
       FreeAndNil(C);
     end;
-{$IFDEF old}
-  cmBack: //try apply immediately
-    if not AddDescription(C) then
-      AppendIt;
-{$ELSE}
-{$ENDIF}
-  else  //any (forward) comment
+  else  //any (forward/back) comment
     AppendIt;
   end;
 end;
 
 function TParser.AddDescription(var t: TToken; item: TPasItem; fDestroy: boolean): boolean;
-var
-  p: PRawDescriptionInfo;
+//var  p: PRawDescriptionInfo;
 begin
 //currently the result is always True (remove?)
   //Result := False; //in case of any errors
@@ -661,94 +668,11 @@ begin
     end else
       item := CurScope.Members.LastItem
   end;
-{$IFDEF old}
-//first description?
-  p := item.RawDescriptionInfo;
-  if p^.Content = '' then begin
-  //first description
-    p^.Content := T.CommentContent;
-    p^.StreamName := T.StreamName;
-    p^.BeginPosition := T.BeginPosition;
-  end else begin
-    p^.Content := p^.Content + LineEnding + t.CommentContent;
-    if p^.StreamName <> t.StreamName then
-      p^.StreamName := ' ';  //should never occur here!
-  end;
-  p^.EndPosition := T.EndPosition;
-  if fDestroy then FreeAndNil(t);
-{$ELSE}
   item.AddRawDescription(t);
   t := nil;
-{$ENDIF}
   Result := True;
 end;
 
-{$IFDEF old}
-procedure TParser.ApplyComments(item: TPasItem);
-var
-  t: TToken;
-
-  procedure DiscardT;
-  begin
-    DoMessage(2, pmtWarning, 'Comment discarded: "%s"', [t.CommentContent]);
-    FreeAndNil(t);
-  end;
-
-begin
-(* Called just after creation of item, or before CloseScope.
-  DeclLast contains the previous item, item is the new one.
-  Apply all pending comments (before item) to these two:
-  [- pending fwd to DeclLast (? should have been done already!)]
-  - pending back, before item, to DeclLast
-    (all if DeclLast = nil, on CloseScope)?
-  - pending fwd on item
-
-  When a scope is closed, following back-comments must go into the scope item!
-  (different procedure!)
-*)
-(* When the implementation is parsed, the target item may have different
-  declaration and definition addresses! This can occur only with procedures,
-  which must have both their declaration and definition position stored.
-  Both positions are initialized to the same values, on item creation, the
-  definition position can be updated later, and is used to determine the
-  applicable comments.
-*)
-(* Block comments shall go into a special location (scope!?).
-  Other comments shall be chained to the item.
-  Allow for comments from external file?!
-*)
-  assert(item <> nil, 'cannot add comments to Nil');
-  if assigned(BlockComment) and (BlockComment.BeginPosition < item.NamePosition) then
-    AddDescription(BlockComment, item, False); //don't destroy!!!
-  //else applies to following items only
-//inspect all pending comments
-  while Pending <> nil do begin
-    t := Pending;
-    Pending := t.Next;
-    if t.StreamName <> item.NameStream then begin
-      //DiscardT()
-      DoMessage(1, pmtWarning,
-        '%s: Comment in different file: "%s"',
-        [Scanner.GetStreamInfo, t.CommentContent]);
-      FreeAndNil(t);
-    end else if (t.Mark = cmFwd) then begin
-      if t.EndPosition > item.NamePosition then
-        break;  //applies to following item
-      AddDescription(t, item);
-    end else if t.BeginPosition < item.NamePosition then begin //back comment
-      //DiscardT()
-      DoMessage(1, pmtWarning,
-        '%s: No target for back-comment: "%s"',
-        [Scanner.GetStreamInfo, t.CommentContent]);
-        FreeAndNil(t);
-    end else
-      AddDescription(t, item);
-    assert(t=nil, 'comment not destroyed');
-  end;
-//all remaining comments apply to following items
-end;
-{$ELSE}
-{$ENDIF}
 
 procedure TParser.FlushBackRems(item: TPasItem; tlim: TToken);
 var
@@ -912,25 +836,55 @@ end;
 
 function TParser.CreateItem(AClass: TPasItemClass; tt: TTokenType;
   Ident: TToken): TPasItem;
+var
+  parts: TNameParts;
+  item: TBaseItem absolute Result;
+  method: TPasMethod; //absolute Result;
 begin
+(* Handling of Ident?
+  Assume that it's always in Identifier?
+*)
+(* Different procedures for interface and implementation!
+  The implementation section can contain forward or external declarations,
+    and implementations of previously declared procedures.
+  An item must be created ONLY IF not already done!
+*)
 //get identifier
   if Ident = nil then
     Ident := QualID(True); //assume: must read the name
 //flush pending back comments
   if Assigned(DeclLast) then
     FlushBackRems(DeclLast, Ident);
-  Result := AClass.Create(CurScope, tt, Ident.Data);
-  Result.NameStream := Ident.StreamName;
-  Result.NamePosition := Ident.BeginPosition;
-  FreeAndNil(Identifier); //???
-//init varlist processing
+//lookup possibly existing item
+  Result := nil;
+  if Impl then begin
+    SplitNameParts(Ident.Data, parts);
+    item := CurScope.FindName(parts);
+  end;
+  if Result = nil then begin
+    Result := AClass.Create(CurScope, tt, Ident.Data);
+  {$IFDEF old}
+    Result.NameStream := Ident.StreamName;
+    Result.NamePosition := Ident.BeginPosition;
+  {$ELSE}
+    Result.DeclPos := Ident.Location;
+    if Impl then Result.ImplPos := Ident.Location; //overwrite later
+  {$ENDIF}
+  end else begin
+    method := item as TPasMethod; //only methods can have separate declaration and definition
+  {$IFDEF old}
+    method.ImplToken := Ident;
+    Identifier := nil; //now owned by method
+  {$ELSE}
+    method.ImplPos := Ident.Location;
+  {$ENDIF}
+  end;
+  FreeAndNil(Identifier); //this is where Ident must reside!
 (* actually DeclLast is the previously created item (if any).
   Pending back-comments can be applied to it safely, up to the new item.
 *)
-  //ApplyComments(Result); //allow for DeclFirst..DeclLast
   FlushFwdRems(Result);
   DeclLast := Result;
-  //DeclFirst := nil; //default, will be restored immediately in ParseVarList.
 end;
 
 //function TParser.ParseIdentList(AClass: TPasItemClass; tt: TTokenType): TPasItem;
@@ -949,7 +903,6 @@ begin
   Result := CreateItem(AClass, tt, QualID(False));
   while Skip(SYM_COMMA) do begin
     CreateItem(AClass, tt, nil); //sets DeclLast, clears DeclFirst
-    //DeclFirst := Result; //restore declaration mark
   end;
 //next token peeked, but not consumed (typically: ":")
 end;
@@ -978,7 +931,7 @@ procedure TParser.ParseVariables(inUnit: boolean);
 var
   FirstItem, NewItem: TPasItem;
   I: Integer;
-  pRaw: PRawDescriptionInfo;
+  //pRaw: PRawDescriptionInfo;
 begin //ParseFieldsVariables
 (* ident <| { "," ident } ":" type [absolute] ";" modifiers |>
 *)
@@ -1028,6 +981,211 @@ begin //ParseFieldsVariables
       NewItem.Descriptions.Text := FirstItem.Descriptions.Text;
   end;
 {$ENDIF}
+end;
+
+//---------------------- Parser entry point ----------------------------------
+
+procedure TParser.ParseUnitOrProgram(var U: TPasUnit);
+(* required by PasDoc_base!
+  Create U as unit.
+*)
+var
+  tt: TTokenType;
+begin
+(* [ UNIT | LIBRARY | PROGRAM | PACKAGE ] ident ...
+*)
+  assert(CurScope = nil, 'old scope???');
+  tt := GetNextToken;
+  U := CreateItem(TPasUnit, tt, nil) as TPasUnit;
+  U.CurVisibility := viPublic;
+  Impl := False;
+  OpenScope(U);
+  case tt of
+  KEY_UNIT:     ParseUnit(U);
+  KEY_LIBRARY:  ParseLibrary(U);
+  KEY_PROGRAM:  ParseProgram(U);
+  { TODO : Package? }
+  else
+    DoError('unrecognized file type: %s', [Token.Description]);
+  end;
+  CloseScope;
+end;
+
+//----------------------- Unit types ----------------------- }
+
+procedure TParser.ParseUnit(U: TPasUnit);
+begin
+(* UNIT ident <| ";"
+  INTERFACE ...
+  IMPLEMENTATION |>
+*)
+  ParseHintDirectives(U);
+  Expect(SYM_SEMICOLON);
+  Expect(KEY_INTERFACE);
+
+  { now parse the interface section of that unit }
+  ParseInterfaceSection(U);
+end;
+
+procedure TParser.ParseProgram(U: TPasUnit);
+begin
+//skip parameters
+  if Skip(SYM_LEFT_PARENTHESIS) then begin
+    while GetNextToken <> SYM_RIGHT_PARENTHESIS do
+      ;
+  end;
+  ParseProgramOrLibraryUses(U);
+{ TODO : Program: parse Impl until BEGIN? }
+end;
+
+procedure TParser.ParseLibrary(U: TPasUnit);
+begin
+  ParseProgramOrLibraryUses(U);
+{ TODO : Library: parse Intf until END? }
+end;
+
+//--------------------- Uses ------------------------------------
+
+procedure TParser.ParseProgramOrLibraryUses(U: TPasUnit); //; fWithHeader: boolean);
+begin
+  ParseHintDirectives(U);
+  Expect(SYM_SEMICOLON);
+
+  if Skip(KEY_USES) then
+    ParseUses(U);
+end;
+
+procedure TParser.ParseHintDirectives(Item: TPasItem);
+begin
+(* <| { LIBRARY | PLATFORM | DEPRECATED } |>
+*)
+  while True do begin
+    if Skip(KEY_LIBRARY) then //Item.IsLibrarySpecific := true
+      Item.HasAttribute[SD_LIBRARY_] := True
+    else if Skip(SD_PLATFORM)   //then Item.IsPlatformSpecific := true
+          or Skip(SD_DEPRECATED) then //Item.IsDeprecated := true
+            item.HasAttribute[Token.Directive] := True
+    else
+      break;
+  end;  //until false;
+end;
+
+procedure TParser.ParseUses(const U: TPasUnit);
+begin
+(* USES <| qualid { "," qualid } ";" |>
+qualid (here)
+  ident { "." ident } [ IN string ]
+*)
+  { Parsing uses clause clears the comment, otherwise
+    - normal comments before "uses" clause would be assigned to normal unit
+      items (like a procedure), which is quite unexpected
+      (see ok_comment_over_uses_clause.pas testcase).
+    - analogously, back comments after "uses" clause would be assigned to the unit
+      description (see ok_comment_over_uses_clause_2.pas testcase).
+  }
+  CancelComments;
+
+  repeat
+  (* Uses in implementation section should be discarded, for now?
+    The used units may be required in "ancestor" search?
+  *)
+    QualID(True); //returns Identifier
+    if Impl then
+      FreeAndNil(Identifier)
+    else
+      U.UsesUnits.Append(Identifier.Data);
+
+    if Skip(KEY_IN) then begin
+    { Below we just ignore the value of next string token.
+
+      We can do this -- because PasDoc (at least for now)
+      does not recursively parse units on "uses" clause.
+      So we are not interested in the value of
+      given string (which should be a file-name (usually relative,
+      but absolute is also allowed AFAIK) with given unit.)
+
+      If we will ever want to implement such "recursive parsing
+      of units" in PasDoc, we will have to fix this to
+      *not* ignore value of token below.
+    }
+      Expect(TOK_STRING);
+    end;
+  until not Skip(SYM_COMMA);
+  Expect(SYM_SEMICOLON);
+end;
+
+procedure TParser.ParseInterfaceSection(const U: TPasUnit);
+const
+  MODE_UNDEFINED = 0;
+  MODE_CONST = 1;
+  MODE_TYPE = 2;
+  MODE_VAR = 3;
+var
+  //Finished: Boolean;
+  Mode: Integer;
+begin
+(* INTERFACE <| { clauses }
+  ( BEGIN | IMPLEMENTATION ... ( INITIALIZATION | FINALIZATION | END ) ) |>
+clauses:
+  USES <| id-list ";" |>
+  (VAR | CONST ...) { ident <| vc-decl ";" } |>
+  TYPE { ident <| type-decl ";" } |>
+Procedures are special, due to possible modifiers?
+All possible modifiers should be peeked!
+*)
+  DoMessage(4, pmtInformation, 'Entering interface section of unit %s',[U.Name]);
+  //Finished := False;
+  Mode := MODE_UNDEFINED;
+
+  repeat
+    Recorder := '';
+    case GetNextToken of
+    KEY_USES: ParseUses(U);
+    KEY_RESOURCESTRING, KEY_CONST:  Mode := MODE_CONST;
+    KEY_TYPE:                       Mode := MODE_TYPE;
+    KEY_THREADVAR, KEY_VAR:         Mode := MODE_VAR;
+    TOK_IDENTIFIER: //or "operator"
+      if Token.Directive = SD_OPERATOR then begin
+        {M :=} ParseCDFP(false, Key_Operator_, nil);
+        Mode := MODE_UNDEFINED;
+      end else begin
+        case Mode of
+        MODE_CONST: ParseConstant;  //(U);
+        MODE_TYPE:  ParseType;  //(U);
+        MODE_VAR:   ParseVariables(True); //(U);
+        else //case
+          DoError('Unexpected %s', [Token.Description]);
+        end; //case
+      end;
+    KEY_FUNCTION, KEY_PROCEDURE:
+      begin
+        {M :=} ParseCDFP(False, Token.MyType, nil);
+        Mode := MODE_UNDEFINED;
+      end;
+    KEY_PROPERTY:
+      begin
+        {PropertyParsed :=} ParseProperty;  //(U); //(PropertyParsed);
+        Mode := MODE_UNDEFINED;
+      end;
+    KEY_IMPLEMENTATION:
+    {$IFDEF old}
+      break; //Finished := True;
+    {$ELSE}
+      begin
+        Mode := MODE_UNDEFINED;
+        Impl := True; //ParseImplementation;
+      end;
+  //stops
+    KEY_BEGIN,  //program block
+    KEY_INITIALIZATION, KEY_FINALIZATION, //stop parsing units
+    KEY_END,  //final end
+    SYM_PERIOD: //emergency brake
+      break;
+    {$ENDIF}
+    else //case
+      DoError('Unexpected %s', [Token.Description]);
+    end; //case
+  until False;  // Finished;
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -1092,6 +1250,11 @@ Modifiers with arguments:
   INDEX expr
 The arguments can be identifiers, so that we should assume that
   modifiers with arguments are terminated by ";"
+
+In the implementation section a "block" follows.
+A declarative block can be EXTERN, FORWARD or INLINE.
+A definition block can be preceded by clauses (VAR...),
+  and ends with an ASM or BEGIN code block.
 }
 //parse method declaration
   if Ident = nil then
@@ -1390,66 +1553,6 @@ begin
   Expect(SYM_SEMICOLON);
 end;
 
-procedure TParser.ParseInterfaceSection(const U: TPasUnit);
-const
-  MODE_UNDEFINED = 0;
-  MODE_CONST = 1;
-  MODE_TYPE = 2;
-  MODE_VAR = 3;
-var
-  Finished: Boolean;
-  Mode: Integer;
-begin
-(* INTERFACE |> { clauses } IMPLEMENTATION |>
-clauses:
-  USES <| id-list ";" |>
-  (VAR | CONST ...) { ident <| vc-decl ";" } |>
-  TYPE { ident <| type-decl ";" } |>
-Procedures are special, due to possible modifiers?
-All possible modifiers should be peeked!
-*)
-  DoMessage(4, pmtInformation, 'Entering interface section of unit %s',[U.Name]);
-  Finished := False;
-  Mode := MODE_UNDEFINED;
-
-  repeat
-    Recorder := '';
-    case GetNextToken of
-    KEY_USES: ParseUses(U);
-    KEY_RESOURCESTRING, KEY_CONST:  Mode := MODE_CONST;
-    KEY_TYPE:                       Mode := MODE_TYPE;
-    KEY_THREADVAR, KEY_VAR:         Mode := MODE_VAR;
-    TOK_IDENTIFIER: //or "operator"
-      if Token.Directive = SD_OPERATOR then begin
-        {M :=} ParseCDFP(false, Key_Operator_, nil);
-        Mode := MODE_UNDEFINED;
-      end else begin
-        case Mode of
-        MODE_CONST: ParseConstant;  //(U);
-        MODE_TYPE:  ParseType;  //(U);
-        MODE_VAR:   ParseVariables(True); //(U);
-        else //case
-          DoError('Unexpected %s', [Token.Description]);
-        end; //case
-      end;
-    KEY_FUNCTION, KEY_PROCEDURE:
-      begin
-        {M :=} ParseCDFP(False, Token.MyType, nil);
-        Mode := MODE_UNDEFINED;
-      end;
-    KEY_PROPERTY:
-      begin
-        {PropertyParsed :=} ParseProperty;  //(U); //(PropertyParsed);
-        Mode := MODE_UNDEFINED;
-      end;
-    KEY_IMPLEMENTATION:
-      Finished := True;
-    else //case
-      DoError('Unexpected %s', [Token.Description]);
-    end; //case
-  until Finished;
-end;
-
 { ---------------------------------------------------------------------------- }
 
 //function  TParser.ParseProperty(U: TPasScope; Visibility: TVisibility): TPasProperty;
@@ -1608,119 +1711,6 @@ end;
 
 { ---------------------------------------------------------------------------- }
 
-procedure TParser.ParseUnit(U: TPasUnit);
-begin
-(* UNIT ident <| ";"
-  INTERFACE ...
-  IMPLEMENTATION |>
-*)
-  ParseHintDirectives(U);
-  Expect(SYM_SEMICOLON);
-  Expect(KEY_INTERFACE);
-
-  { now parse the interface section of that unit }
-  ParseInterfaceSection(U);
-end;
-
-{ ---------------------------------------------------------------------------- }
-procedure TParser.ParseProgramOrLibraryUses(U: TPasUnit); //; fWithHeader: boolean);
-begin
-  ParseHintDirectives(U);
-  Expect(SYM_SEMICOLON);
-
-  if Skip(KEY_USES) then
-    ParseUses(U);
-end;
-
-procedure TParser.ParseProgram(U: TPasUnit);
-begin
-//skip parameters
-  if Skip(SYM_LEFT_PARENTHESIS) then begin
-    while GetNextToken <> SYM_RIGHT_PARENTHESIS do
-      ;
-  end;
-  ParseProgramOrLibraryUses(U);
-end;
-
-procedure TParser.ParseLibrary(U: TPasUnit);
-begin
-  ParseProgramOrLibraryUses(U);
-end;
-
-{ ---------------------------------------------------------------------------- }
-
-procedure TParser.ParseUnitOrProgram(var U: TPasUnit);
-(* required by PasDoc_base!
-*)
-var
-  tt: TTokenType;
-begin
-(* [ UNIT | LIBRARY | PROGRAM | PACKAGE ] ident ...
-*)
-  assert(CurScope = nil, 'old scope???');
-  tt := GetNextToken;
-  U := CreateItem(TPasUnit, tt, nil) as TPasUnit;
-  U.CurVisibility := viPublic;
-  OpenScope(U);
-  case tt of
-  KEY_UNIT:     ParseUnit(U);
-  KEY_LIBRARY:  ParseLibrary(U);
-  KEY_PROGRAM:  ParseProgram(U);
-  else
-    DoError('unrecognized file type: %s', [Token.Description]);
-  end;
-  CloseScope;
-end;
-
-{ ---------------------------------------------------------------------------- }
-
-procedure TParser.ParseUses(const U: TPasUnit);
-begin
-(* USES qualid { "," qualid } ";"
-qualid (here)
-  ident { "." ident } [ IN string ]
-*)
-  { Parsing uses clause clears the comment, otherwise
-    - normal comments before "uses" clause would be assigned to normal unit
-      items (like a procedure), which is quite unexpected
-      (see ok_comment_over_uses_clause.pas testcase).
-    - analogously, back comments after "uses" clause would be assigned to the unit
-      description (see ok_comment_over_uses_clause_2.pas testcase).
-  }
-  CancelComments;
-  //LastCommentMark := cmNoRem; //IsLastComment := false;
-  //ItemsForNextBackComment.Clear;
-
-  repeat
-    //U.UsesUnits.Append(GetAndCheckNextToken(TOK_IDENTIFIER, true));
-    U.UsesUnits.Append(QualId(True).Data);
-
-    if Skip(KEY_IN) then begin
-    { Below we just ignore the value of next string token.
-
-      We can do this -- because PasDoc (at least for now)
-      does not recursively parse units on "uses" clause.
-      So we are not interested in the value of
-      given string (which should be a file-name (usually relative,
-      but absolute is also allowed AFAIK) with given unit.)
-
-      If we will ever want to implement such "recursive parsing
-      of units" in PasDoc, we will have to fix this to
-      *not* ignore value of token below.
-    }
-      Expect(TOK_STRING);
-    end;
-  until not Skip(SYM_COMMA);
-  Expect(SYM_SEMICOLON);
-end;
-
-{ ---------------------------------------------------------------------------- }
-
-procedure TParser.SetCommentMarkers(const Value: TStringList);
-begin
-  FCommentMarkers.Assign(Value);
-end;
-
 procedure TParser.SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem);
 var
   Level: Integer;
@@ -1796,25 +1786,5 @@ Take into account (nesting level) embedded:
 end;
 
 { ------------------------------------------------------------ }
-
-procedure TParser.ParseHintDirectives(Item: TPasItem);
-begin
-(* <| { LIBRARY | PLATFORM | DEPRECATED } |>
-*)
-  while True do begin
-    if Skip(KEY_LIBRARY) then //Item.IsLibrarySpecific := true
-      Item.HasAttribute[SD_LIBRARY_] := True
-    else if Skip(SD_PLATFORM)   //then Item.IsPlatformSpecific := true
-          or Skip(SD_DEPRECATED) then //Item.IsDeprecated := true
-            item.HasAttribute[Token.Directive] := True
-    else
-      break;
-  end;  //until false;
-end;
-
-class function TParser.ShowVisibilities: TVisibilities;
-begin
-  Result := PasDoc_items.ShowVisibilities;
-end;
 
 end.

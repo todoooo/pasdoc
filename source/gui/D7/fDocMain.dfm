@@ -21,7 +21,7 @@ object DocMain: TDocMain
     Top = 0
     Width = 607
     Height = 425
-    ActivePage = tabDoc
+    ActivePage = tabSpelling
     Align = alClient
     TabOrder = 0
     object tabOpts: TTabSheet
@@ -973,6 +973,13 @@ object DocMain: TDocMain
       Caption = '&Edit'
       object Preferences1: TMenuItem
         Caption = '&Preferences'
+      end
+    end
+    object mnuDebug: TMenuItem
+      Caption = '&Debug'
+      object mnuDebugTranslation: TMenuItem
+        Caption = 'Debug &Translation'
+        OnClick = mnuDebugTranslationClick
       end
     end
     object Help1: TMenuItem

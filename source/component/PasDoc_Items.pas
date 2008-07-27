@@ -22,6 +22,7 @@ interface
 uses
   SysUtils,
   PasDoc_Types,
+  PasDoc_Languages,
   PasDoc_StringVector,
   PasDoc_ObjectVector,
   PasDoc_Hashes,
@@ -148,6 +149,7 @@ type
 
   TBaseItems = class;
   TPasItems = class;
+  TMemberLists = class;
   //TPasMethods = class;
   //TPasProperties = class;
 
@@ -155,19 +157,21 @@ type
     and has some @link(RawDescription). }
   TBaseItem = class(TSerializable)
   private
+    FAuthors: TStringVector;
+    FLastMod: string;
+    FCreated: string;
     FDetailedDescription: string;
     FFullLink: string;
-    FLastMod: string;
     FName: string;
-    FAuthors: TStringVector;
-    FCreated: string;
     FAutoLinkHereAllowed: boolean;
+  //Effectively a string list/vector of descriptions, with TTokens as objects.
     FRawDescriptionInfo: TRawDescriptionInfo;
 
     function GetRawDescription: string;
     procedure WriteRawDescription(const Value: string);
 
     procedure SetFullLink(const Value: string);
+    function  GetAuthors: TStringVector;
     procedure SetAuthors(const Value: TStringVector);
 
     procedure StoreAuthorTag(ThisTag: TTag; var ThisTagData: TObject;
@@ -226,14 +230,29 @@ type
   // All attributes, modifiers etc.
     FAttributes: TPasItemAttributes;
   // position of identifier in the declaration.
+  {$IFDEF old}
     FNamePosition: TTextStreamPos;
     FNameStream: string;
+  {$ELSE}
+    FDeclPos, FImplPos: TNameLocation;
+    function  GetStream: string; virtual;
+    function  GetPos: TTextStreamPos; virtual;
+  {$ENDIF}
   public
     function  IsKey(AKey: TTokenType): boolean;
     property Kind: TTokenType read FKind;
     property Attributes: TPasItemAttributes read FAttributes write FAttributes;
+  {$IFDEF old}
     property NamePosition: TTextStreamPos read FNamePosition write FNamePosition;
     property NameStream: string read FNameStream write FNameStream;
+  {$ELSE}
+  //Here: position of declaration. Procedures add position of implementation.
+    property DeclPos: TNameLocation read FDeclPos write FDeclPos;
+    property ImplPos: TNameLocation read FImplPos write FImplPos;
+  //assume: declaration position is currently parsed and compared
+    property NamePosition: TTextStreamPos read GetPos;
+    property NameStream: string read GetStream;
+  {$ENDIF}
     property Members: TPasItems read FItems;
     property MyOwner: TPasScope read FMyOwner;  // write FMyOwner;
   public
@@ -346,7 +365,7 @@ type
     function QualifiedName: String; virtual;
 
     { list of strings, each representing one author of this item }
-    property Authors: TStringVector read FAuthors write SetAuthors;
+    property Authors: TStringVector read GetAuthors write SetAuthors;
 
     { Contains '' or string with date of creation.
       This string is already in the form suitable for final output
@@ -567,7 +586,75 @@ type
     procedure Serialize(const ADestination: TStream);
     procedure Deserialize(const ASource: TStream);
   public
+  (* List header. Meaningful id's can be:
+    FTranslation[trNone] := 'None'; - default
+
+    FTranslation[trUnit] := 'Unit';
+    FTranslation[trProgram] := 'Program';
+    FTranslation[trLibrary] := 'Library';
+      FTranslation[trIdentifiers] := 'Identifiers';
+        FTranslation[trUnits] := 'Units';
+        FTranslation[trVariables] := 'Variables';
+        FTranslation[trConstants] := 'Constants';
+        FTranslation[trTypes] := 'Types';
+        FTranslation[trCio] := 'Classes, Interfaces, Objects and Records';
+        FTranslation[trFunctionsAndProcedures] := 'Functions and Procedures';
+
+    FTranslation[trClass] := 'Class';
+    FTranslation[trDispInterface] := 'DispInterface';
+    FTranslation[trInterface] := 'Interface';
+    FTranslation[trObject] := 'Object';
+    'Record'?
+      FTranslation[trIdentifiers] := 'Identifiers';
+        FTranslation[trFields] := 'Fields';
+        FTranslation[trMethods] := 'Methods';
+        FTranslation[trProperties] := 'Properties';
+        'Events'?
+
+    FTranslation[trEnum] := 'Enumeration';
+      FTranslation[trIdentifiers] := 'Identifiers';
+    or
+      FTranslation[trValues] := 'Values';
+
+    'Procedure'?
+      //FTranslation[trReturns] := 'Returns';
+      FTranslation[trParameters] := 'Parameters';
+      FTranslation[trPrivate] := 'Private'; - for implementation items
+      FTranslation[trExceptionsRaised] := 'Exceptions raised';
+
+  ?global target descriptions for 'Exceptions raised'?
+    FTranslation[trExceptions] := 'Exceptions';
+
+  Wherever applicable:
+    FTranslation[trAuthors] := 'Authors'; - units only?
+    //FTranslation[trOverview] := 'Overview';
+    FTranslation[trSeeAlso] := 'See also';
+
+  Every item with named members (scope) has:
+    FTranslation[trIdentifiers] := 'Identifiers';
+
+  On-demand lists, subdivided e.g. by visibility:
+    FTranslation[trVisibility] := 'Visibility';
+      FTranslation[trAutomated] := 'Automated';
+      FTranslation[trPrivate] := 'Private';
+      FTranslation[trStrictPrivate] := 'Strict Private';
+      FTranslation[trProtected] := 'Protected';
+      FTranslation[trStrictProtected] := 'Strict Protected';
+      FTranslation[trPublic] := 'Public';
+      FTranslation[trImplicit] := 'Implicit';
+      FTranslation[trPublished] := 'Published';
+  *)
+    TranslationID: TTranslationID;
+
     constructor Create(const AOwnsObject: Boolean); override;
+
+  (* Create and add list to a members list.
+    Initialize name and/from translation ID.
+    The new list is intended to hold an subset of a member list,
+      and consequently does not own the objects.
+  *)
+    constructor CreateIn(AList: TMemberLists; id: TTranslationID;
+      AName: string);
     destructor Destroy; override;
 
     { Compares each element's name field with Name and returns the item on
@@ -640,6 +727,18 @@ type
     function Text(const NameValueSepapator, ItemSeparator: string): string;
   end;
 
+(* List of member lists.
+  All lists are owned by this object (destroyed on destroy)
+  All items in these lists are assumed to be in Members as well.
+*)
+  TMemberLists = class(TStringVector)
+  protected
+    function  GetMembers(const name: string): TPasItems;
+  public
+    destructor Destroy; override;
+    property Members[const name: string]: TPasItems read GetMembers;
+  end;
+
 (* Item with members.
 *)
   TPasScope = class(TPasItem)
@@ -656,6 +755,8 @@ type
     function FindItemInAncestors(const ItemName: string): TPasItem; virtual;
 
   public
+  //Member lists.
+    MemberLists: TMemberLists;
   //remember visibility while parsing
     CurVisibility: TVisibility;
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
@@ -716,16 +817,24 @@ type
     procedure RegisterTags(TagManager: TTagManager); override;
   end;
 
+//parameter list type, not yet fixed.
+  TParams = TPasItems;
   { This represents:
     @orderedList(
       @item global function/procedure,
       @item method (function/procedure of a class/interface/object),
       @item pointer type to one of the above (in this case Name is the type name).
-    ) }
+    )
+    The implementation of the parameters should follow the unit/CIO implementation,
+      with parameter items in a specialized list.
+    Then the general item list can hold local variables, procedures and whatsoever,
+      as parsed from the implementation.
+  }
   TPasMethod = class(TPasScope)
   protected
     FReturns: string;
     FRaises: TStringPairVector;
+    FParams: TParams;
     FWhat: TMethodType;
     procedure Serialize(const ADestination: TStream); override;
     procedure Deserialize(const ASource: TStream); override;
@@ -738,7 +847,20 @@ type
     procedure StoreReturnsTag(ThisTag: TTag; var ThisTagData: TObject;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
+  //return implementation position, iff defined
+    function  GetPos: TTextStreamPos; override;
+    function  GetStream: string; override;
+    function  GetRaises: TStringPairVector;
+    function  NeedParams: TParams;
   public
+  (* in case we found an implementation...
+    Perhaps a static store (record) for the declaration/definition positions
+    would be better.
+    The positions are used (only) by the parser, eventually by the editor, to
+    match the identifiers with the descriptions. Since links in external files
+    and elsewhere require a name search, the same procedure could be used for
+    handling descriptions in the implementation section?
+  *)
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string); override;
     destructor Destroy; override;
@@ -747,6 +869,10 @@ type
       that init @link(Params), @link(Returns) and @link(Raises)
       and remove according tags from description. }
     procedure RegisterTags(TagManager: TTagManager); override;
+
+  //here no object is involved, owned..., overload later?
+    //procedure AddParam(const Name, Value: string);
+    function AddParam(const Name, Value: string): TPasItem;
 
     { obsolete }
     property What: TMethodType read FWhat write FWhat;
@@ -761,15 +887,18 @@ type
     { Name of each item is the name of parameter (without any surrounding
       whitespace), Value of each item is users description for this item
       (in already-expanded form). }
-    property Params: TPasItems read FItems;
+    property Params: TParams read FParams;
 
     //Result could be added as a parameter
     property Returns: string read FReturns;
 
     { Name of each item is the name of exception class (without any surrounding
       whitespace), Value of each item is users description for this item
-      (in already-expanded form). }
-    property Raises: TStringPairVector read FRaises;
+      (in already-expanded form).
+      Exceptions should be described as they are, not with every usage.
+    }
+    property Raises: TStringPairVector read GetRaises;
+    //property Raises: TStringPairVector read GetRaises;
 
     { Are some optional properties (i.e. the ones that may be empty for
       TPasMethod after parsing unit and expanding tags --- currently this
@@ -782,9 +911,10 @@ type
     FIndexDecl: string;
     FStoredID: string;
     FDefaultID: string;
-    FWriter: string;
     FPropType: string;
-    FReader: string;
+  //reader and writer can become items? To be listed with the property...
+    FReader,
+    FWriter: string;
     procedure Serialize(const ADestination: TStream); override;
     procedure Deserialize(const ASource: TStream); override;
   public
@@ -1109,6 +1239,10 @@ implementation
 
 uses PasDoc_Utils;
 
+var
+  EmptyStringVector: TStringVector;
+  EmptyObjectVector: TObjectVector;
+
 type
 //serialization of count fields, fixed to 4 bytes
   TCountField = LongInt;
@@ -1144,7 +1278,10 @@ end;
 constructor TBaseItem.Create;
 begin
   inherited Create;
+{$IFDEF old}
   FAuthors := TStringVector.Create;
+{$ELSE}
+{$ENDIF}
   AutoLinkHereAllowed := true;
   FRawDescriptionInfo := TStringList.Create;
   if ord(Kind) > 0 then begin
@@ -1159,7 +1296,7 @@ var
   o: TObject;
   p: TPasItem absolute o;
 begin
-  Authors.Free;
+  FreeAndNil(FAuthors);
   FreeAndNil(FItems);
   for i := 0 to FRawDescriptionInfo.Count - 1 do begin
     o := FRawDescriptionInfo.Objects[i];
@@ -1323,8 +1460,18 @@ begin
     {$IFDEF FPC}@{$ENDIF} HandleNoAutoLinkTag, []);
 end;
 
+function TBaseItem.GetAuthors: TStringVector;
+begin
+  Result := FAuthors;
+  if Result = nil then begin
+    Result := EmptyStringVector;
+  end;
+end;
+
 procedure TBaseItem.SetAuthors(const Value: TStringVector);
 begin
+  if FAuthors = nil then
+    FAuthors := TStringVector.Create;
   FAuthors.Assign(Value);
 end;
 
@@ -1350,8 +1497,13 @@ begin
   inherited;
   Name := LoadStringFromStream(ASource);
   RawDescription := LoadStringFromStream(ASource);
+{$IFDEF old}
   FNameStream := LoadStringFromStream(ASource);
   FNamePosition := LoadIntegerFromStream(ASource);
+{$ELSE}
+  FDeclPos.Stream := LoadStringFromStream(ASource);
+  FDeclPos.Start := LoadIntegerFromStream(ASource);
+{$ENDIF}
   ASource.Read(FKind, sizeof(FKind));
   ASource.Read(FAttributes, sizeof(FAttributes));
 //allow for missing item list
@@ -1377,9 +1529,13 @@ begin
   inherited;
   SaveStringToStream(Name, ADestination);
   SaveStringToStream(RawDescription, ADestination);
-
+{$IFDEF old}
   SaveStringToStream(FNameStream, ADestination);
   SaveIntegerToStream(FNamePosition, ADestination);
+{$ELSE}
+  SaveStringToStream(FDeclPos.Stream, ADestination);
+  SaveIntegerToStream(FDeclPos.Start, ADestination);
+{$ENDIF}
   ADestination.Write(FKind, sizeof(FKind));
   ADestination.Write(FAttributes, sizeof(FAttributes));
   HaveItems := assigned(FItems);
@@ -1435,6 +1591,16 @@ begin
   FRawDescriptionInfo.Content := Value;
 end;
 {$ENDIF}
+
+function TBaseItem.GetPos: TTextStreamPos;
+begin
+  Result := FDeclPos.Start;
+end;
+
+function TBaseItem.GetStream: string;
+begin
+  Result := FDeclPos.Stream;
+end;
 
 function TBaseItem.BasePath: string;
 begin
@@ -1623,11 +1789,13 @@ begin
     FItems := TPasItems.Create(True);
     //destruction occurs in inherited destructor
   FHeritage := TStringVector.Create;
+  MemberLists := TMemberLists.Create;
 end;
 
 destructor TPasScope.Destroy;
 begin
   FreeAndNil(FHeritage);
+  FreeAndNil(MemberLists);
   inherited;
 end;
 
@@ -1711,7 +1879,17 @@ end;
 constructor TBaseItems.Create(const AOwnsObject: Boolean);
 begin
   inherited;
+  TranslationID := trNone;  //default
   FHash := TObjectHash.Create;
+end;
+
+constructor TBaseItems.CreateIn(AList: TMemberLists; id: TTranslationID;
+  AName: string);
+begin
+  Create(False);  //member lists do not normally own objects
+  TranslationID := id;
+  //if AName = '' then AName := lang???
+  AList.AddObject(AName, self); //this becomes the owner
 end;
 
 destructor TBaseItems.Destroy;
@@ -1769,6 +1947,7 @@ var
   i: Integer;
 begin
   Clear;
+  TranslationID := TTranslationID(TSerializable.LoadIntegerFromStream(ASource));
   ASource.Read(LCount, SizeOf(LCount));
   for i := 0 to LCount - 1 do
     Add(TBaseItem(TSerializable.DeserializeObject(ASource)));
@@ -1779,6 +1958,7 @@ var
   LCount: TCountField;
   i: Integer;
 begin
+  TSerializable.SaveIntegerToStream(ord(TranslationID), ADestination);
   LCount := Count;
   ADestination.Write(LCount, SizeOf(LCount));
   { DONE : sizeof(integer) is compiler specific, not constant! }
@@ -2139,7 +2319,7 @@ begin
 
   if (FuncsProcs <> nil) and (ssFuncsProcs in SortSettings) then 
     FuncsProcs.SortShallow;
-    
+
   if (Types <> nil) and (ssTypes in SortSettings) then 
     Types.SortShallow;
 
@@ -2178,8 +2358,13 @@ constructor TPasMethod.Create(AOwner: TPasScope; AKind: TTokenType;
   const AName: string);
 begin
   inherited;
+{$IFDEF old}
   //FParams := TStringPairVector.Create(true);
-  FRaises := TStringPairVector.Create(true);
+  FParams := TParams.Create(False); //assume: parameters also are Members
+  MemberLists.AddObject('parameters', FParams);
+{$ELSE}
+{$ENDIF}
+  //FRaises := TStringPairVector.Create(true);
 //init what
   case AKind of
   KEY_CONSTRUCTOR: FWhat := METHOD_CONSTRUCTOR;
@@ -2192,8 +2377,23 @@ end;
 
 destructor TPasMethod.Destroy;
 begin
-  FRaises.Free;
+  FreeAndNil(FRaises);
+  //FreeAndNil(FParams);
   inherited Destroy;
+end;
+
+function TPasMethod.GetPos: TTextStreamPos;
+begin
+  Result := FImplPos.Start;
+  if Result = 0 then
+    Result := FDeclPos.Start;
+end;
+
+function TPasMethod.GetStream: string;
+begin
+  Result := FImplPos.Stream;
+  if Result = '' then
+    Result := FDeclPos.Stream;
 end;
 
 { TODO for StoreRaisesTag and StoreParamTag:
@@ -2202,7 +2402,7 @@ end;
   of here, where the TagParameter is already expanded and converted.
 
   Actually, current approach works for now perfectly,
-  but only because neighter html generator nor LaTeX generator
+  but only because neither html generator nor LaTeX generator
   change text in such way that first word of the text
   (assuming it's a normal valid Pascal identifier) is changed.
 
@@ -2212,6 +2412,13 @@ end;
 
   But this is obviously unclean approach. }
 
+function TPasMethod.GetRaises: TStringPairVector;
+begin
+  Result := FRaises;
+  if Result = nil then
+    TObjectVector(Result) := EmptyObjectVector;
+end;
+
 procedure TPasMethod.StoreRaisesTag(
   ThisTag: TTag; var ThisTagData: TObject;
   EnclosingTag: TTag; var EnclosingTagData: TObject;
@@ -2219,18 +2426,21 @@ procedure TPasMethod.StoreRaisesTag(
 var
   Pair: TStringPair;
 begin
+(* Rarely used, create list only if required.
+*)
   Pair := TStringPair.CreateExtractFirstWord(TagParameter);
 
-  if Pair.Name = '' then
-  begin
-    FreeAndNil(Pair);
+  if Pair.Name = '' then begin
     ThisTag.TagManager.DoMessage(2, pmtWarning,
       '@raises tag doesn''t specify exception name, skipped', []);
-  end else
-  begin
+    FreeAndNil(Pair);
+  end else begin
+    if not Assigned(FRaises) then begin
+      FRaises := TStringPairVector.Create(True);
+      MemberLists.AddObject('raises', FRaises);
+    end;
     FRaises.Add(Pair);
   end;
-
   ReplaceStr := '';
 end;
 
@@ -2241,22 +2451,61 @@ procedure TPasMethod.StoreParamTag(
 var
   //name: string;
   Pair: TStringPair;
-  param: TPasItem;
+  //param: TPasItem;
 begin
+(* Old implementation is based on Param:TStringPair.
+  New implementation should use TPasItem, for consistency.
+  Then parameters become members, with an additional TPasItems list.
+
+  Problem: parameters can not be distinguished easily from local variables.
+    One criterium may be their public visibility - unknown at construction!
+  Dedicated methods can/must be added?
+*)
   Pair := TStringPair.CreateExtractFirstWord(TagParameter);
 
   if Pair.Name = '' then begin
-    FreeAndNil(Pair);
     ThisTag.TagManager.DoMessage(2, pmtWarning,
       '@param tag doesn''t specify parameter name, skipped', []);
   end else begin
+  //create - what, where? (FHeritage?)
+  {$IFDEF old}
     TBaseItem(param) := FindItem(Pair.Name);
-    if param = nil then
+    if param = nil then begin
       param := TPasItem.Create(self, KEY_VAR, Pair.Name);
+    end;
     param.DetailedDescription := Pair.Value;
+  {$ELSE}
+    //AddParam(Pair);
+    AddParam(Pair.Name, Pair.Value);  //make clear that no object is involved, owned...
+  {$ENDIF}
   end;
-
+//delete temp object
+  FreeAndNil(Pair);
   ReplaceStr := '';
+end;
+
+function TPasMethod.NeedParams: TParams;
+begin
+  if FParams = nil then begin
+    FParams := TParams.Create(False);
+    MemberLists.AddObject('parameters', FParams);
+  end;
+  Result := FParams;
+end;
+
+function TPasMethod.AddParam(const Name, Value: string): TPasItem;
+begin
+(* To be called from tagmanager, where
+  Value = detailed description (old convention)
+*)
+  TBaseItem(Result) := FindItem(Name);
+  if Result = nil then begin
+  //become another method?
+    Result := TPasItem.Create(self, KEY_VAR, Name);
+    Result.Visibility := viPublic;  //in contrast to local variables!
+    NeedParams.Add(Result);
+  end;
+  Result.DetailedDescription := Value;
 end;
 
 procedure TPasMethod.StoreReturnsTag(
@@ -2264,6 +2513,9 @@ procedure TPasMethod.StoreReturnsTag(
   EnclosingTag: TTag; var EnclosingTagData: TObject;
   const TagParameter: string; var ReplaceStr: string);
 begin
+(* "Result" could become a regular member, of every function?
+  TagParameter is what? (full description?)
+*)
   if TagParameter = '' then exit;
   FReturns := TagParameter;
   ReplaceStr := '';
@@ -2274,13 +2526,14 @@ begin
   Result :=
     (Returns <> '')
     //or (not ObjectVectorIsNilOrEmpty(Params))
-    or (not ObjectVectorIsNilOrEmpty(Raises));
+    or (not ObjectVectorIsNilOrEmpty(FRaises));
 end;
 
 procedure TPasMethod.Deserialize(const ASource: TStream);
 begin
   inherited;
   ASource.Read(FWhat, SizeOf(FWhat));
+{ TODO : fill param list, from public Members }
 
   { No need to serialize, because it's not generated by parser:
   Params.LoadFromBinaryStream(ASource);
@@ -2292,11 +2545,11 @@ procedure TPasMethod.Serialize(const ADestination: TStream);
 begin
   inherited;
   ADestination.Write(FWhat, SizeOf(FWhat));
-  
+
   { No need to serialize, because it's not generated by parser:
   Params.SaveToBinaryStream(ADestination);
   SaveStringToStream(FReturns, ADestination);
-  FRaises.SaveToBinaryStream(ADestination); }  
+  FRaises.SaveToBinaryStream(ADestination); }
 end;
 
 procedure TPasMethod.RegisterTags(TagManager: TTagManager);
@@ -2304,19 +2557,19 @@ begin
   inherited;
   TTopLevelTag.Create(TagManager, 'raises',
     nil, {$IFDEF FPC}@{$ENDIF} StoreRaisesTag,
-    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault, 
+    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault,
      toAllowNormalTextInside, toFirstWordVerbatim]);
-  TTopLevelTag.Create(TagManager, 'param', 
+  TTopLevelTag.Create(TagManager, 'param',
     nil, {$IFDEF FPC}@{$ENDIF} StoreParamTag,
-    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault, 
+    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault,
      toAllowNormalTextInside, toFirstWordVerbatim]);
   TTopLevelTag.Create(TagManager, 'returns',
     nil, {$IFDEF FPC}@{$ENDIF} StoreReturnsTag,
-    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault, 
+    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault,
      toAllowNormalTextInside]);
-  TTopLevelTag.Create(TagManager, 'return', 
+  TTopLevelTag.Create(TagManager, 'return',
     nil, {$IFDEF FPC}@{$ENDIF} StoreReturnsTag,
-    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault, 
+    [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault,
      toAllowNormalTextInside]);
 end;
 
@@ -2415,10 +2668,10 @@ end;
 procedure TExternalItem.RegisterTags(TagManager: TTagManager);
 begin
   inherited;
-  TTopLevelTag.Create(TagManager, 'title', 
+  TTopLevelTag.Create(TagManager, 'title',
     nil, {$IFDEF FPC}@{$ENDIF} HandleTitleTag,
     [toParameterRequired]);
-  TTopLevelTag.Create(TagManager, 'shorttitle', 
+  TTopLevelTag.Create(TagManager, 'shorttitle',
     nil, {$IFDEF FPC}@{$ENDIF} HandleShortTitleTag,
     [toParameterRequired]);
 end;
@@ -2472,7 +2725,35 @@ begin
     end;
 end;
 
+{ TMemberLists }
+
+destructor TMemberLists.Destroy;
+var
+  i: integer;
+  obj: TObject;
+begin
+//destroy all member lists
+  for i := 0 to Count-1 do begin
+    obj := Objects[i];
+    obj.Free;
+  end;
+  inherited;
+end;
+
+function TMemberLists.GetMembers(const name: string): TPasItems;
+var
+  i: integer;
+begin
+  i := IndexOf(name);
+  if i < 0 then
+    Result := nil
+  else
+    TObject(Result) := Objects[i];
+end;
+
 initialization
+  EmptyStringVector := TStringVector.Create;  //should remain empty!
+  EmptyObjectVector := TObjectVector.Create(True);
   TSerializable.Register(TPasItem);
   TSerializable.Register(TPasConstant);
   TSerializable.Register(TPasFieldVariable);
@@ -2482,4 +2763,7 @@ initialization
   TSerializable.Register(TPasProperty);
   TSerializable.Register(TPasCio);
   TSerializable.Register(TPasUnit);
+finalization
+  FreeAndNil(EmptyStringVector);
+  FreeAndNil(EmptyObjectVector);
 end.

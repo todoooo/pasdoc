@@ -1580,7 +1580,8 @@ const
     ULink: TPasItem;
   begin
     if WriteUsesClause and not StringVectorIsNilOrEmpty(U.UsesUnits) then begin
-      WriteHeading(HL, 'uses', 'uses');
+      //WriteHeading(HL, 'uses', 'uses');
+      WriteHeading(HL, 'uses', FLanguage.Translation[trUses]);
       WriteDirect('<ul class="useslist">');
       for i := 0 to U.UsesUnits.Count-1 do begin
         WriteDirect('<li>');
@@ -1676,7 +1677,7 @@ begin
   end;
 
   SectionHeads[dsDescription] := FLanguage.Translation[trDescription];
-  SectionHeads[dsUses] := 'uses';
+  SectionHeads[dsUses] := FLanguage.Translation[trUses]; //'uses';
   SectionHeads[dsClasses] := FLanguage.Translation[trCio];
   SectionHeads[dsFuncsProcs]:= FLanguage.Translation[trFunctionsAndProcedures];
   SectionHeads[dsTypes]:= FLanguage.Translation[trTypes];
@@ -1720,7 +1721,7 @@ begin
   WriteAnchor(SectionAnchors[dsUses]);
   WriteUnitUses(HL + 1, U);
 
-  AnyItemDetailed := 
+  AnyItemDetailed :=
     (not ObjectVectorIsNilOrEmpty(U.FuncsProcs)) or
     (not ObjectVectorIsNilOrEmpty(U.Types)) or
     (not ObjectVectorIsNilOrEmpty(U.Constants)) or
@@ -1729,21 +1730,21 @@ begin
   AnyItemSummary := AnyItemDetailed or
     (not ObjectVectorIsNilOrEmpty(U.CIOs));
 
-  { AnyItemSummary/Detailed are used here to avoid writing headers 
+  { AnyItemSummary/Detailed are used here to avoid writing headers
     "Overview" and "Description" when there are no items. }
   if AnyItemSummary then
   begin
-    WriteHeading(HL + 1, 'overview', FLanguage.Translation[trOverview]);  
+    WriteHeading(HL + 1, 'overview', FLanguage.Translation[trOverview]);
     WriteCIOSummary(HL + 2, U.CIOs);
     WriteFuncsProcsSummary;
     WriteTypesSummary;
     WriteConstantsSummary;
     WriteVariablesSummary;
   end;
-  
+
   if AnyItemDetailed then
   begin
-    WriteHeading(HL + 1, 'description', FLanguage.Translation[trDescription]);  
+    WriteHeading(HL + 1, 'description', FLanguage.Translation[trDescription]);
     WriteFuncsProcsDetailed;
     WriteTypesDetailed;
     WriteConstantsDetailed;

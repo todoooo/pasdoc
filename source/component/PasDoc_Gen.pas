@@ -854,7 +854,7 @@ type
   published
     { the (human) output language of the documentation file(s) }
     property Language: TLanguageID read GetLanguage write SetLanguage
-      default DEFAULT_LANGUAGE;
+      default lgDefault;
     { Name of the project to create. }
     property ProjectName: string read FProjectName write FProjectName;
     

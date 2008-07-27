@@ -124,6 +124,8 @@ type
     edRem: TMemo;
     GroupBox10: TGroupBox;
     cbRem: TComboBox;
+    mnuDebug: TMenuItem;
+    mnuDebugTranslation: TMenuItem;
   {$IFDEF fpc}
     //procedure btnBrowseIncludeDirectoryClick(Sender: TObject);
   {$ELSE}
@@ -161,6 +163,7 @@ type
     procedure Exit1Click(Sender: TObject);
     procedure tvUnitsClick(Sender: TObject);
     procedure cbRemClick(Sender: TObject);
+    procedure mnuDebugTranslationClick(Sender: TObject);
   private
     FHasChanged: boolean;
     MisspelledWords: TStringList;
@@ -239,34 +242,6 @@ uses
 
 {$R *.dfm}
 
-//------------- language helpers -----------------
-
-function  LanguageFromIndex(i: integer): string;
-begin
-  Result := PasDoc_Languages.language_array[TLanguageID(i)].Name;
-end;
-
-function SyntaxFromIndex(i: integer): string;
-var
-  l: TLanguageID absolute i;
-begin
-  Result := Language_array[l].Syntax;
-end;
-
-function IDfromLanguage(const s: string): TLanguageID;
-var
-  i: TLanguageID;
-begin
-  for i := low(i) to high(i) do begin
-    if (LANGUAGE_ARRAY[i].Name = s)
-    or (LANGUAGE_ARRAY[i].Syntax = s) then begin
-      Result := i;
-      exit;
-    end;
-  end;
-  Result := lgEnglish;
-end;
-
 
 { TDocMain }
 
@@ -285,7 +260,8 @@ begin
   lbOutLang.Items.Capacity :=
     Ord(High(TLanguageID)) - Ord(Low(TLanguageID)) + 1;
   for LanguageIndex := Low(TLanguageID) to High(TLanguageID) do begin
-    lbOutLang.Items.Add(LANGUAGE_ARRAY[LanguageIndex].Name);
+    //lbOutLang.Items.Add(LANGUAGE_ARRAY[LanguageIndex].Name);
+    lbOutLang.Items.Add(LanguageFromIndex(ord(LanguageIndex)));
   end;
   lbOutLang.ItemIndex := ord(lgEnglish);
 
@@ -1501,10 +1477,8 @@ begin
           o := lst.Objects[i];
           if assigned(o) then begin
             s := Format(
-              '%s[%d - %d]',
-              [ c.StreamName,
-                c.BeginPosition,
-                c.EndPosition ]);
+              //'%s[%d - %d]', [c.StreamName, c.BeginPosition , c.EndPosition]);
+              '%s[%d]', [c.StreamName, c.BeginPosition]);
           end else
             s := '<unknown/inherited>';
           cbRem.AddItem(s, o);
@@ -1532,6 +1506,28 @@ begin
     end else
       edRem.Text := SelItem.Descriptions.Strings[i-1];
   end;
+end;
+
+procedure TDocMain.mnuDebugTranslationClick(Sender: TObject);
+var
+  i: TTranslationID;  // integer;
+  lst: TStringList;
+  s: string;  //[12];
+begin
+{$IFDEF debug}
+  lst := TStringList.Create;
+  for i := low(i) to high(i) do begin
+    s := TranslationNameFromId(i);
+    Delete(s, 1, 2);
+    lst.Add(s);
+    s := Translation(i, self.Language);
+    lst.Add(s);
+    lst.Add('');
+  end;
+  lst.SaveToFile('TransTest.txt');
+  lst.Free;
+{$ELSE}
+{$ENDIF}
 end;
 
 end.

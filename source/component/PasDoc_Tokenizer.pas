@@ -455,7 +455,10 @@ begin
     begin
       Result.StreamName := StreamName;
       Result.BeginPosition := BeginPosition;
+    {$IFDEF old}
       Result.EndPosition := StreamPosition;
+    {$ELSE}
+    {$ENDIF}
     end;
   end;
 end;

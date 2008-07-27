@@ -262,12 +262,21 @@ const
   );
 
 type
+  TNameLocation = record
+    Stream: string;
+    Start: TTextStreamPos;  //obsolete: End
+  end;
+
   { Stores the exact type and additional information on one token. }
   TToken = class(TObject)
   protected
-    FEndPosition,
-    FBeginPosition: TTextStreamPos;
+  {$IFDEF old}
     FStreamName: string;
+    FBeginPosition: TTextStreamPos;
+    FEndPosition: TTextStreamPos;
+  {$ELSE}
+    FPosition: TNameLocation;
+  {$ENDIF}
   public
     { the exact character representation of this token as it was found in the
       input file }
@@ -319,16 +328,25 @@ type
 
     // @name is the name of the TStream from which this @classname was read.
     // It is currently used to set @link(TRawDescriptionInfo.StreamName).
+  {$IFDEF old}
     property StreamName: string read FStreamName write FStreamName;
+  {$ELSE}
+    property StreamName: string read FPosition.Stream write FPosition.Stream;
+    property Location: TNameLocation read FPosition;
+  {$ENDIF}
 
     // @name is the position in the stream of the start of the token.
     // It is currently used to set @link(TRawDescriptionInfo.BeginPosition).
-    property BeginPosition: TTextStreamPos read FBeginPosition write FBeginPosition;
+    property BeginPosition: TTextStreamPos read FPosition.Start write FPosition.Start;
 
+  {$IFDEF old}
     // @name is the position in the stream of the character immediately
     // after the end of the token.
     // It is currently used to set @link(TRawDescriptionInfo.EndPosition).
     property EndPosition: TTextStreamPos read FEndPosition write FEndPosition;
+  {$ELSE}
+    //obsolete - ever used?
+  {$ENDIF}
   end;
 
 
