@@ -34,10 +34,6 @@ program pasdoc;
 {$ENDIF}
 
 uses
-{$IFDEF FPC}
-{$ELSE}
-  FastMM4,
-{$ENDIF}
   PasDoc_Main;
 
 begin

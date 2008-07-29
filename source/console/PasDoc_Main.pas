@@ -94,6 +94,7 @@ type
 constructor TPasdocOptions.Create;
 var
   l: TLanguageID;
+  plr: PLanguageRecord;
 begin
   inherited;
 
@@ -165,9 +166,11 @@ begin
 
   OptionLanguage := TStringOption.Create('L', 'language');
   OptionLanguage.Explanation := 'Output language. Valid languages are: ' + LineEnding;
-  for l := Low(LANGUAGE_ARRAY) to High(LANGUAGE_ARRAY) do
+  for l := Low(l) to High(l) do begin
+    plr := LanguageDescriptor(l);
     OptionLanguage.Explanation := OptionLanguage.Explanation + '  ' +
-      LANGUAGE_ARRAY[l].Syntax + ': ' + LANGUAGE_ARRAY[l].Name + LineEnding;
+      plr^.Syntax + ': ' + plr^.Name + LineEnding;
+  end;
   AddOption(OptionLanguage);
 
   OptionStarOnly := TBoolOption.Create(#0, 'staronly');

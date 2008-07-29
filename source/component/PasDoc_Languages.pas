@@ -173,6 +173,15 @@ type
   RTransTable = array[TTranslationID] of string;
   PTransTable = ^RTransTable;
 
+//language descriptor
+  PLanguageRecord = ^TLanguageRecord;
+  TLanguageRecord = record
+    Table: PTransTable;
+    Name: string;
+    Syntax: string;
+    CharSet: string;
+  end;
+
   { Language class to hold all translated strings.
     Warning: A new translation model is introduced now.
     All translations should be revised accordingly.
@@ -270,6 +279,8 @@ function TranslationNameFromId(id: TTranslationID): string;
 { Find a language with Syntax = S (case ignored).
   Returns @true and sets LanguageId if found, otherwise returns @false. }
 function LanguageFromStr(S: string; out LanguageId: TLanguageID): boolean;
+
+function LanguageDescriptor(id: TLanguageID): PLanguageRecord;
 
 implementation
 
@@ -2337,14 +2348,6 @@ begin
 end;
 
 
-type
-  TLanguageRecord = record
-    Table: PTransTable;
-    Name: string;
-    Syntax: string;
-    CharSet: string;
-  end;
-
 const
 //FPC doesn't allow to skip fields :-(
   LANGUAGE_ARRAY: array[TLanguageID] of TLanguageRecord = (
@@ -2497,6 +2500,11 @@ begin
   end;
 
   Result := false;
+end;
+
+function LanguageDescriptor(id: TLanguageID): PLanguageRecord;
+begin
+  Result := @Language_array[id];
 end;
 
 end.
