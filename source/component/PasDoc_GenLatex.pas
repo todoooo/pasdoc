@@ -339,7 +339,7 @@ var
   s, S1, S2: string;
   EmailAddress: string;
 begin
-  if StringVectorIsNilOrEmpty(Authors) then Exit;
+  if IsEmpty(Authors) then Exit;
 
   if (Authors.Count = 1) then
     WriteHeading(HL, FLanguage.Translation[trAuthor])
@@ -403,11 +403,11 @@ begin
     Include(SectionsAvailable, dsDescription);
   if Assigned(CIO.Ancestors) and (CIO.Ancestors.Count > 0) then
     Include(SectionsAvailable, dsHierarchy);
-  if not ObjectVectorIsNilOrEmpty(CIO.Fields) then
+  if not IsEmpty(CIO.Fields) then
     Include(SectionsAvailable, dsFields);
-  if not ObjectVectorIsNilOrEmpty(CIO.Methods) then
+  if not IsEmpty(CIO.Methods) then
     Include(SectionsAvailable, dsMethods);
-  if not ObjectVectorIsNilOrEmpty(CIO.Properties) then
+  if not IsEmpty(CIO.Properties) then
     Include(SectionsAvailable, dsProperties);
 
   if SectionsAvailable = [] then exit;
@@ -419,7 +419,7 @@ begin
   if dsHierarchy in SectionsAvailable then
     begin
       { Write Hierarchy }
-      if Assigned(CIO.Ancestors) and (CIO.Ancestors.Count > 0) then 
+      if not IsEmpty(CIO.Ancestors) then
         begin
           WriteHeading(HL + 2, SectionHeads[dsHierarchy]);
 
@@ -427,13 +427,13 @@ begin
           WriteConverted(' > ');
           s := CIO.Ancestors.FirstName;
           Item := CIO.FirstAncestor;
-          if Assigned(Item) and (Item is TPasCio) then 
+          if Assigned(Item) and (Item is TPasCio) then
             begin
               repeat
                 s := MakeItemLink(Item, Item.Name, lcNormal);
                 WriteDirect(s);
 
-                if not StringVectorIsNilOrEmpty(TPasCio(Item).Ancestors) then 
+                if not IsEmpty(TPasCio(Item).Ancestors) then 
                   begin
                     s := TPasCio(Item).Ancestors.FirstName;
                     Item := TPasCio(Item).FirstAncestor;
@@ -469,8 +469,10 @@ begin
 
   WriteItemsDetailed(HL + 2, CIO.Methods, CIO.ShowVisibility, trMethods);
 
+{$IFDEF BaseAuthors}
   WriteAuthors(HL + 2, CIO.Authors);
   WriteDates(HL + 2, CIO.Created, CIO.LastMod);
+{$ENDIF}
 end;
 
 procedure TTexDocGenerator.WriteCIOs(HL: integer; c: TPasItems);
@@ -720,10 +722,10 @@ var
   s: string;
   Visibility: string;
 begin
-  if ObjectVectorIsNilOrEmpty(Items) then Exit;
+  if IsEmpty(Items) then Exit;
 
   WriteHeading(HL, FLanguage.Translation[SectionName]);
-  
+
   { Determine the longest string used.
     This is the one we will use for determining the label width.
   }
@@ -772,7 +774,7 @@ var
   i: Integer;
   Item: TPasItem;
 begin
-  if ObjectVectorIsNilOrEmpty(Items) then Exit;
+  if IsEmpty(Items) then Exit;
 
   WriteDirect('\begin{description}',true);
 
@@ -976,7 +978,7 @@ procedure TTexDocGenerator.WriteItemLongDescription(const AItem: TPasItem;
     i: integer;
     ParamName: string;
   begin
-    if objectVectorIsNilOrEmpty(List) then
+    if IsEmpty(List) then
       Exit;
 
     WriteDirect('\item[\textbf{'+Caption+'}]',true);
@@ -1004,7 +1006,7 @@ procedure TTexDocGenerator.WriteItemLongDescription(const AItem: TPasItem;
     SeeAlsoItem: TBaseItem;
     SeeAlsoLink: string;
   begin
-    if ObjectVectorIsNilOrEmpty(SeeAlso) then
+    if IsEmpty(SeeAlso) then
       Exit;
 
     if not AlreadyWithinAList then
@@ -1086,7 +1088,7 @@ begin
       WriteSpellChecked(AItem.DetailedDescription);
     end else 
     begin
-      if (AItem is TPasCio) and not StringVectorIsNilOrEmpty(TPasCio(AItem).Ancestors) then 
+      if (AItem is TPasCio) and not IsEmpty(TPasCio(AItem).Ancestors) then 
       begin
         AncestorName := TPasCio(AItem).Ancestors.FirstName;
         Ancestor := TPasCio(AItem).FirstAncestor;
@@ -1153,7 +1155,7 @@ begin
   if FLatex2Rtf then
     WriteItemsDetailed(HL, Items, ShowVisibility, SectionName) else
   begin
-    if ObjectVectorIsNilOrEmpty(Items) then Exit;
+    if IsEmpty(Items) then Exit;
 
     WriteHeading(HL, FLanguage.Translation[SectionName]);
   
@@ -1350,7 +1352,7 @@ procedure TTexDocGenerator.WriteUnit(const HL: integer; const U: TPasUnit);
     i: Integer;
     ULink: TPasItem;
   begin
-    if WriteUsesClause and not StringVectorIsNilOrEmpty(U.UsesUnits) then begin
+    if WriteUsesClause and not IsEmpty(U.UsesUnits) then begin
       WriteHeading(HL, 'uses');
       WriteDirect('\begin{itemize}',true);
       for i := 0 to U.UsesUnits.Count-1 do begin
@@ -1386,12 +1388,12 @@ var
 
 begin
   SectionsAvailable := [dsDescription];
-  ConditionallyAddSection(dsUses, WriteUsesClause and not StringVectorIsNilOrEmpty(U.UsesUnits));
-  ConditionallyAddSection(dsClasses, not ObjectVectorIsNilOrEmpty(U.CIOs));
-  ConditionallyAddSection(dsFuncsProcs, not ObjectVectorIsNilOrEmpty(U.FuncsProcs));
-  ConditionallyAddSection(dsTypes, not ObjectVectorIsNilOrEmpty(U.Types));
-  ConditionallyAddSection(dsConstants, not ObjectVectorIsNilOrEmpty(U.Constants));
-  ConditionallyAddSection(dsVariables, not ObjectVectorIsNilOrEmpty(U.Variables));
+  ConditionallyAddSection(dsUses, WriteUsesClause and not IsEmpty(U.UsesUnits));
+  ConditionallyAddSection(dsClasses, not IsEmpty(U.CIOs));
+  ConditionallyAddSection(dsFuncsProcs, not IsEmpty(U.FuncsProcs));
+  ConditionallyAddSection(dsTypes, not IsEmpty(U.Types));
+  ConditionallyAddSection(dsConstants, not IsEmpty(U.Constants));
+  ConditionallyAddSection(dsVariables, not IsEmpty(U.Variables));
 
   DoMessage(2, pmtInformation, 'Writing Docs for unit "%s"', [U.Name]);
 
@@ -1425,8 +1427,10 @@ begin
 
   WriteItemsDetailed(HL + 1, U.Variables, false, trVariables);
 
+{$IFDEF BaseAuthors}
   WriteAuthors(HL + 1, U.Authors);
   WriteDates(HL + 1, U.Created, U.LastMod);
+{$ENDIF}
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -1518,8 +1522,12 @@ begin
 
   WriteSpellChecked(ExternalItem.DetailedDescription);
 
+{$IFDEF BaseAuthors}
   WriteAuthors(HL + 1, ExternalItem.Authors);
   WriteDates(HL + 1, ExternalItem.Created, ExternalItem.LastMod);
+{$ELSE}
+  //also for external items?
+{$ENDIF}
 end;
 
 constructor TTexDocGenerator.Create(AOwner: TComponent);

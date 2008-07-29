@@ -36,7 +36,8 @@ procedure TipueAddFiles(Units: TPasUnits;
 
 implementation
 
-uses Classes, SysUtils;
+uses Classes, SysUtils,
+  PasDoc_StringPairVector;
 
 function TipueSearchButtonHead: string;
 begin
@@ -64,7 +65,7 @@ procedure TipueAddFiles(Units: TPasUnits;
         ShortDescription, '^', LongDescription, '^0"');
       Inc(IndexDataNum);
     end;
-    
+
     procedure WriteItemIndexData(Item: TBaseItem);
     
       function EscapeIndexEntry(const S: string): string;
@@ -83,54 +84,57 @@ procedure TipueAddFiles(Units: TPasUnits;
       begin
         Result := StringReplaceChars(S, ReplacementArray);
       end;
-      
+
     var
       ShortDescription, LongDescription: string;
       EnumMember: TPasItem;
+      pm: TPasMethod absolute Item;
+      pe: TPasEnum absolute Item;
       i: Integer;
     begin
       { calculate ShortDescription }
       if Item is TPasItem then
-        ShortDescription := 
-          EscapeIndexEntry(TPasItem(Item).AbstractDescription) else
-      if Item is TExternalItem then
-        ShortDescription := 
-          EscapeIndexEntry(TExternalItem(Item).ShortTitle) else
+        ShortDescription := EscapeIndexEntry(TPasItem(Item).AbstractDescription)
+      else if Item is TExternalItem then
+        ShortDescription := EscapeIndexEntry(TExternalItem(Item).ShortTitle)
+      else
         ShortDescription := '';
-      
+
+      { TODO : Authors should occur only in units? }
       { calculate LongDescription.
         Note that LongDescription will not be shown to user anywhere
-        (it will only be searched by tipue), so we don't care how 
+        (it will only be searched by tipue), so we don't care how
         things look here. We just glue some properties of Item together. }
-      LongDescription := EscapeIndexEntry(Item.DetailedDescription) +
-        ' ' + EscapeIndexEntry(Item.Authors.Text);
-      if Item is TPasMethod then
+      LongDescription := EscapeIndexEntry(Item.DetailedDescription);
+      // + ' ' + EscapeIndexEntry(Item.Authors.Text);
+
+      if Item is TPasMethod then begin
+      //some problem here?
         LongDescription := LongDescription +
-          ' ' + EscapeIndexEntry(TPasMethod(Item).Params.Text(' ', ' ')) +
-          ' ' + EscapeIndexEntry(TPasMethod(Item).Returns) +
-          ' ' + EscapeIndexEntry(TPasMethod(Item).Raises.Text(' ', ' '));
-      if Item is TPasEnum then
-      begin
-        for i := 0 to TPasEnum(Item).Members.Count - 1 do
-        begin
-          EnumMember := TPasEnum(Item).Members.PasItemAt[i];
-          LongDescription := LongDescription + 
+          ' ' + EscapeIndexEntry(pm.Params.Text(' ', ' '));
+        LongDescription := LongDescription +
+          ' ' + EscapeIndexEntry(pm.Returns);
+        if not IsEmpty(pm.Raises) then
+          LongDescription := LongDescription +
+            ' ' + EscapeIndexEntry(pm.Raises.Text(' ', ' '));
+      end else if Item is TPasEnum then begin
+        for i := 0 to pe.Members.Count - 1 do begin
+          EnumMember := pe.Members.PasItemAt[i];
+          LongDescription := LongDescription +
             ' ' + EscapeIndexEntry(EnumMember.Name) +
             ' ' + EscapeIndexEntry(EnumMember.AbstractDescription) +
-            ' ' + EscapeIndexEntry(EnumMember.DetailedDescription) +
-            ' ' + EscapeIndexEntry(EnumMember.Authors.Text);
+            ' ' + EscapeIndexEntry(EnumMember.DetailedDescription);
+          // + ' ' + EscapeIndexEntry(EnumMember.Authors.Text);
         end;
-      end;
-      if Item is TExternalItem then
-      begin
+      end else if Item is TExternalItem then begin
         LongDescription := LongDescription +
           ' ' + EscapeIndexEntry(TExternalItem(Item).Title);
       end;
-      
-      WriteIndexData(Item.QualifiedName, Item.FullLink, 
+
+      WriteIndexData(Item.QualifiedName, Item.FullLink,
         ShortDescription, LongDescription);
     end;
-    
+
     procedure WriteItemsIndexData(Items: TPasItems);
     var
       i: Integer;
@@ -138,9 +142,9 @@ procedure TipueAddFiles(Units: TPasUnits;
       for i := 0 to Items.Count - 1 do
         WriteItemIndexData(Items.PasItemAt[i]);
     end;
-    
+
     procedure WriteCIOsIndexData(CIOs: TPasItems);
-    var 
+    var
       i: Integer;
       CIO: TPasCIO;
     begin

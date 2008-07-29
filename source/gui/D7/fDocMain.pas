@@ -50,7 +50,6 @@ type
     Label5: TLabel;
     lbOutLang: TComboBox;
     swVisible: TCheckListBox;
-    swBackRef: TCheckBox;
     OpenDialog1: TOpenDialog;
     PasDoc1: TPasDoc;
     HTMLDocGenerator: THTMLDocGenerator;
@@ -126,6 +125,7 @@ type
     cbRem: TComboBox;
     mnuDebug: TMenuItem;
     mnuDebugTranslation: TMenuItem;
+    swShowUses: TCheckBox;
   {$IFDEF fpc}
     //procedure btnBrowseIncludeDirectoryClick(Sender: TObject);
   {$ELSE}
@@ -525,7 +525,7 @@ begin
   edConclusion.Text := '';
   //swAutoAbstract.Checked := false;
   //swTipue.Checked := false;
-  swBackRef.Checked := True;  //DoDi!
+  //swBackRef.Checked := True;  //DoDi!
 
 //Sorting
   for SortIndex := Low(TSortSetting) to High(TSortSetting) do
@@ -539,7 +539,7 @@ end;
 const
   secMain = 'Main';
     mainAutoAbstract = 'AutoAbstract';
-    mainBackRef = 'BackRef';
+    //mainBackRef = 'BackRef';
     mainCheckSpelling = 'CheckSpelling';
     mainClassMembers_ = 'ClassMembers_';
     mainConclusionFileName = 'ConclusionFileName';
@@ -553,6 +553,7 @@ const
     mainOutputDir = 'OutputDir';
     mainRootDir = 'RootDir';
     mainProjectName = 'ProjectName';
+    mainShowUses = 'ShowUses';
     mainSorting_ = 'Sorting_';
     mainSpecialMarkerTreatment = 'SpecialMarkerTreatment';
     mainTitle = 'Title';
@@ -634,12 +635,12 @@ begin
     Ini.WriteString(secMain, mainConclusionFileName, edConclusion.Text);
     Ini.WriteBool(secMain, mainAutoAbstract, swAutoAbstract.Checked);
     Ini.WriteBool(secMain, mainUseTipueSearch, swTipue.Checked);
+    Ini.WriteBool(secMain, mainShowUses, swShowUses.Checked);
     Ini.WriteInteger(secMain, mainLatexGraphicsPackage, lbGraphPackage.ItemIndex);
     Ini.WriteInteger(secMain, mainLineBreakQuality, lbLineBreaks.ItemIndex);
     WriteStrings(secHyphenatedWords, lbHyphenate.Lines);
     Ini.WriteInteger(secMain, mainSpecialMarkerTreatment, swMarkers.ItemIndex);
     WriteStrings(secSpecialMarkers, lbMarkers.Lines);
-    Ini.WriteBool(secMain, mainBackRef, swBackRef.Checked);
     Ini.WriteString(secMain, mainTitle, edTitle.Text);
 
     Ini.WriteBool(secMain, mainVizGraphClasses, swClassDiagram.Checked);
@@ -745,12 +746,12 @@ begin
     edConclusion.Text := Ini.ReadString(secMain, mainConclusionFileName, '');
     swAutoAbstract.Checked := Ini.ReadBool(secMain, mainAutoAbstract, false);
     swTipue.Checked := Ini.ReadBool(secMain, mainUseTipueSearch, false);
+    swShowUses.Checked := Ini.ReadBool(secMain, mainShowUses, True);
     lbLineBreaks.ItemIndex := Ini.ReadInteger(secMain, mainLineBreakQuality, 0);
     lbGraphPackage.ItemIndex := Ini.ReadInteger(secMain, mainLatexGraphicsPackage, 0);
     ReadStrings(secHyphenatedWords, lbHyphenate.Lines);
     swMarkers.ItemIndex := Ini.ReadInteger(secMain, mainSpecialMarkerTreatment, 1);
     ReadStrings(secSpecialMarkers, lbMarkers.Lines);
-    swBackRef.Checked := Ini.ReadBool(secMain, mainBackRef, True);
     edTitle.Text := Ini.ReadString(secMain, 'Title', '');
     swClassDiagram.Checked := Ini.ReadBool(secMain, mainVizGraphClasses, false);
     swUsesDiagram.Checked := Ini.ReadBool(secMain, mainVizGraphUses, false);
@@ -1214,6 +1215,8 @@ try
   end;
   //PasDoc1.DefaultBackRef := swBackRef.Checked;
   //PasDoc1.SingleCharMarkers := swBackRef.Checked;
+  //PasDoc1.ShowUses := sw...;
+  generator.WriteUsesClause := swShowUses.Checked;
 
   if edTitle.Text = '' then
     PasDoc1.Title := edProjectName.Text
@@ -1509,12 +1512,12 @@ begin
 end;
 
 procedure TDocMain.mnuDebugTranslationClick(Sender: TObject);
+{$IFDEF debug}
 var
   i: TTranslationID;  // integer;
   lst: TStringList;
   s: string;  //[12];
 begin
-{$IFDEF debug}
   lst := TStringList.Create;
   for i := low(i) to high(i) do begin
     s := TranslationNameFromId(i);
@@ -1527,6 +1530,7 @@ begin
   lst.SaveToFile('TransTest.txt');
   lst.Free;
 {$ELSE}
+begin
 {$ENDIF}
 end;
 

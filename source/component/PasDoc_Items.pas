@@ -32,6 +32,34 @@ uses
   PasDoc_SortSettings,
   PasDoc_StringPairVector;
 
+{$IFDEF new}
+type
+(* Try: unify tag items, independent from any list implementation.
+  Perhaps an Interface would be a better solution?
+*)
+  RTag = record
+    Name: string;
+    Value: string;
+    Obj: TObject; //TBaseItem?
+  end;
+
+  TTagList = class
+  protected
+    function  GetTag(index: integer): RTag; virtual;
+    function  GetName(index: integer): string; virtual;
+    function  GetValue(index: integer): string; virtual;
+    function  GetObject(index: integer): TObject; virtual;
+  public
+  //questionable: better access the items individually!
+    property  Tag[index: integer]: RTag;
+    property  Name[index: integer]: string read GetName;
+    property  Value[index: integer]: string read GetValue;
+    property  Objects[index: integer]: TObject read GetObject;
+  end;
+{$ELSE}
+  //redesign StringPairVector?
+{$ENDIF}
+
 type
   { Visibility of a field/method. }
   TVisibility = (
@@ -113,6 +141,8 @@ function MethodTypeToString(const MethodType: TMethodType): string;
 
 type
 {$IFDEF PRaw}
+(* Description is kept in a string list, based on comment token objects.
+*)
   TRawDescriptionInfo = TStrings;
   PRawDescriptionInfo = TRawDescriptionInfo;
 {$ELSE}
@@ -157,9 +187,7 @@ type
     and has some @link(RawDescription). }
   TBaseItem = class(TSerializable)
   private
-    FAuthors: TStringVector;
-    FLastMod: string;
-    FCreated: string;
+    FTags: TObjectVector;
     FDetailedDescription: string;
     FFullLink: string;
     FName: string;
@@ -171,9 +199,8 @@ type
     procedure WriteRawDescription(const Value: string);
 
     procedure SetFullLink(const Value: string);
-    function  GetAuthors: TStringVector;
-    procedure SetAuthors(const Value: TStringVector);
 
+  {$IFDEF BaseAuthors}
     procedure StoreAuthorTag(ThisTag: TTag; var ThisTagData: TObject;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
@@ -186,6 +213,9 @@ type
     procedure StoreCVSTag(ThisTag: TTag; var ThisTagData: TObject;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
+  {$ELSE}
+    //only in units
+  {$ENDIF}
     procedure PreHandleNoAutoLinkTag(ThisTag: TTag; var ThisTagData: TObject;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
@@ -219,6 +249,15 @@ type
       ) }
     procedure Serialize(const ADestination: TStream); override;
     procedure Deserialize(const ASource: TStream); override;
+  {$IFDEF BaseAuthors}
+  protected
+    FAuthors: TStringVector;
+    FLastMod: string;
+    FCreated: string;
+    function  GetAuthors: TStringVector;
+    procedure SetAuthors(const Value: TStringVector);
+  {$ELSE}
+  {$ENDIF}
   protected
   { Owner shall be the item, of which this item is a member.
     Usage: construct the fully qualified name...
@@ -348,11 +387,6 @@ type
     property FullLink: string read FFullLink write SetFullLink;
     //property FullLink: string read FFullLink write FFullLink;
 
-    { Contains '' or string with date of last modification.
-      This string is already in the form suitable for final output
-      format (i.e. already processed by TDocGenerator.ConvertString). }
-    property LastMod: string read FLastMod write FLastMod;
-
     { name of the item }
     property Name: string read FName write FName;
 
@@ -364,13 +398,22 @@ type
       In this class this simply returns Name. }
     function QualifiedName: String; virtual;
 
+  {$IFDEF BaseAuthors}
     { list of strings, each representing one author of this item }
     property Authors: TStringVector read GetAuthors write SetAuthors;
+
+    { Contains '' or string with date of last modification.
+      This string is already in the form suitable for final output
+      format (i.e. already processed by TDocGenerator.ConvertString). }
+    property LastMod: string read FLastMod write FLastMod;
 
     { Contains '' or string with date of creation.
       This string is already in the form suitable for final output
       format (i.e. already processed by TDocGenerator.ConvertString). }
     property Created: string read FCreated;
+  {$ELSE}
+    //only in units, evtl. externals?
+  {$ENDIF}
 
     { Is auto-link mechanism allowed to create link to this item ?
       This may be set to @false by @@noAutoLinkHere tag in item's description. }
@@ -654,7 +697,7 @@ type
       and consequently does not own the objects.
   *)
     constructor CreateIn(AList: TMemberLists; id: TTranslationID;
-      AName: string);
+      AName: string = '');
     destructor Destroy; override;
 
     { Compares each element's name field with Name and returns the item on
@@ -724,7 +767,7 @@ type
       TPasCio objects) remain unsorted. }
     procedure SortShallow;
 
-    function Text(const NameValueSepapator, ItemSeparator: string): string;
+    function Text(const NameValueSeparator, ItemSeparator: string): string;
   end;
 
 (* List of member lists.
@@ -851,6 +894,10 @@ type
     function  GetPos: TTextStreamPos; override;
     function  GetStream: string; override;
     function  GetRaises: TStringPairVector;
+  {$IFDEF new}
+    function  GetParams: TParams;
+  {$ELSE}
+  {$ENDIF}
     function  NeedParams: TParams;
   public
   (* in case we found an implementation...
@@ -887,7 +934,12 @@ type
     { Name of each item is the name of parameter (without any surrounding
       whitespace), Value of each item is users description for this item
       (in already-expanded form). }
+  {$IFDEF old}
+    //problems with code that doesn't expect a NIL list!
     property Params: TParams read FParams;
+  {$ELSE}
+    property Params: TParams read NeedParams;
+  {$ENDIF}
 
     //Result could be added as a parameter
     property Returns: string read FReturns;
@@ -1142,6 +1194,25 @@ type
     FOutputFileName: string;
     FCacheDateTime: TDateTime;
     FSourceFileDateTime: TDateTime;
+  {$IFDEF BaseAuthors}
+  {$ELSE}
+    FAuthors: TStringVector;
+    FLastMod: string;
+    FCreated: string;
+    procedure SetAuthors(const Value: TStringVector);
+    procedure StoreAuthorTag(ThisTag: TTag; var ThisTagData: TObject;
+      EnclosingTag: TTag; var EnclosingTagData: TObject;
+      const TagParameter: string; var ReplaceStr: string);
+    procedure StoreCreatedTag(ThisTag: TTag; var ThisTagData: TObject;
+      EnclosingTag: TTag; var EnclosingTagData: TObject;
+      const TagParameter: string; var ReplaceStr: string);
+    procedure StoreCVSTag(ThisTag: TTag; var ThisTagData: TObject;
+      EnclosingTag: TTag; var EnclosingTagData: TObject;
+      const TagParameter: string; var ReplaceStr: string);
+    procedure StoreLastModTag(ThisTag: TTag; var ThisTagData: TObject;
+      EnclosingTag: TTag; var EnclosingTagData: TObject;
+      const TagParameter: string; var ReplaceStr: string);
+  {$ENDIF}
 
     { This searches for item (field, method or property) defined
       in ancestor of this cio. I.e. searches within the FirstAncestor,
@@ -1152,6 +1223,12 @@ type
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string); override;
     destructor Destroy; override;
+
+    { It registers @link(TTag)s that init @link(Authors),
+      @link(Created), @link(LastMod) and remove relevant tags from description.
+      You can override it to add more handlers. }
+    procedure RegisterTags(TagManager: TTagManager); override;
+
   //add item to members and to appropriate list
     procedure AddMember(item: TPasItem); override;
 
@@ -1221,6 +1298,22 @@ type
     function FileNewerThanCache(const FileName: string): boolean;
 
     function BasePath: string; override;
+
+  {$IFDEF BaseAuthors}
+  {$ELSE}
+    { list of strings, each representing one author of this item }
+    property Authors: TStringVector read FAuthors write SetAuthors;
+
+    { Contains '' or string with date of last modification.
+      This string is already in the form suitable for final output
+      format (i.e. already processed by TDocGenerator.ConvertString). }
+    property LastMod: string read FLastMod write FLastMod;
+
+    { Contains '' or string with date of creation.
+      This string is already in the form suitable for final output
+      format (i.e. already processed by TDocGenerator.ConvertString). }
+    property Created: string read FCreated;
+  {$ENDIF}
   end;
 
   { @abstract(Holds a collection of units.) }
@@ -1242,6 +1335,7 @@ uses PasDoc_Utils;
 var
   EmptyStringVector: TStringVector;
   EmptyObjectVector: TObjectVector;
+  EmptyStringPairVector: TStringPairVector;
 
 type
 //serialization of count fields, fixed to 4 bytes
@@ -1269,8 +1363,7 @@ begin
   if Result <> 0 then
     exit;
   Result := ord(P1.Visibility) - ord(P2.Visibility);
-  if Result = 0 then
-    Result := 1;
+  //if Result = 0 then Result := 1;
 end;
 
 { TBaseItem ------------------------------------------------------------------- }
@@ -1281,6 +1374,7 @@ begin
 {$IFDEF old}
   FAuthors := TStringVector.Create;
 {$ELSE}
+  //on demand - or units only?
 {$ENDIF}
   AutoLinkHereAllowed := true;
   FRawDescriptionInfo := TStringList.Create;
@@ -1288,22 +1382,6 @@ begin
     if self.FMyOwner = nil then
       assert(self.Kind = KEY_UNIT);
   end;
-end;
-
-destructor TBaseItem.Destroy;
-var
-  i: integer;
-  o: TObject;
-  p: TPasItem absolute o;
-begin
-  FreeAndNil(FAuthors);
-  FreeAndNil(FItems);
-  for i := 0 to FRawDescriptionInfo.Count - 1 do begin
-    o := FRawDescriptionInfo.Objects[i];
-    p.Free;
-  end;
-  FreeAndNil(FRawDescriptionInfo);
-  inherited;
 end;
 
 function  TBaseItem.IsKey(AKey: TTokenType): boolean;
@@ -1357,6 +1435,42 @@ FindItem should be used for specific parts of the NameParts.
   if (Result = nil) and (index < 0) and assigned(FMyOwner) then
   //unbounded search up in containers
     Result := FMyOwner.FindName(NameParts, -1);
+end;
+
+destructor TBaseItem.Destroy;
+var
+  i: integer;
+  o: TObject;
+  p: TPasItem absolute o;
+begin
+{$IFDEF BaseAuthors}
+  FreeAndNil(FAuthors);
+{$ELSE}
+{$ENDIF}
+  FreeAndNil(FItems);
+  for i := 0 to FRawDescriptionInfo.Count - 1 do begin
+    o := FRawDescriptionInfo.Objects[i];
+    p.Free;
+  end;
+  FreeAndNil(FRawDescriptionInfo);
+  inherited;
+end;
+
+{$IFDEF BaseAuthors}
+
+function TBaseItem.GetAuthors: TStringVector;
+begin
+  Result := FAuthors;
+  if Result = nil then begin
+    Result := EmptyStringVector;
+  end;
+end;
+
+procedure TBaseItem.SetAuthors(const Value: TStringVector);
+begin
+  if FAuthors = nil then
+    FAuthors := TStringVector.Create;
+  FAuthors.Assign(Value);
 end;
 
 procedure TBaseItem.StoreAuthorTag(
@@ -1422,6 +1536,9 @@ begin
     end;
   end;
 end;
+{$ELSE}
+  //Authors etc. only for units
+{$ENDIF}
 
 procedure TBaseItem.PreHandleNoAutoLinkTag(
   ThisTag: TTag; var ThisTagData: TObject;
@@ -1447,6 +1564,7 @@ end;
 procedure TBaseItem.RegisterTags(TagManager: TTagManager);
 begin
   inherited;
+{$IFDEF BaseAuthors}
   TTag.Create(TagManager, 'author', nil, {$IFDEF FPC}@{$ENDIF} StoreAuthorTag,
     [toParameterRequired]);
   TTag.Create(TagManager, 'created', nil, {$IFDEF FPC}@{$ENDIF} StoreCreatedTag,
@@ -1455,24 +1573,11 @@ begin
     [toParameterRequired, toRecursiveTags, toAllowNormalTextInside]);
   TTag.Create(TagManager, 'cvs', nil, {$IFDEF FPC}@{$ENDIF} StoreCVSTag,
     [toParameterRequired]);
+{$ELSE}
+{$ENDIF}
   TTopLevelTag.Create(TagManager, 'noautolinkhere',
     {$IFDEF FPC}@{$ENDIF} PreHandleNoAutoLinkTag,
     {$IFDEF FPC}@{$ENDIF} HandleNoAutoLinkTag, []);
-end;
-
-function TBaseItem.GetAuthors: TStringVector;
-begin
-  Result := FAuthors;
-  if Result = nil then begin
-    Result := EmptyStringVector;
-  end;
-end;
-
-procedure TBaseItem.SetAuthors(const Value: TStringVector);
-begin
-  if FAuthors = nil then
-    FAuthors := TStringVector.Create;
-  FAuthors.Assign(Value);
 end;
 
 procedure TBaseItem.SetFullLink(const Value: string);
@@ -1615,7 +1720,10 @@ begin
   FMyOwner := AOwner;
   FKind := AKind;
   FName := AName;
+{$IFDEF old}
   FSeeAlso := TStringPairVector.Create(true);
+{$ELSE}
+{$ENDIF}
   inherited Create();
   if assigned(AOwner) then
     AOwner.AddMember(self)
@@ -1656,21 +1764,28 @@ procedure TPasItem.HandleSeeAlsoTag(
   ThisTag: TTag; var ThisTagData: TObject;
   EnclosingTag: TTag; var EnclosingTagData: TObject;
   const TagParameter: string; var ReplaceStr: string);
-var
-  Pair: TStringPair;
+//var  Pair: TStringPair;
 begin
+{$IFDEF old}
   Pair := TStringPair.CreateExtractFirstWord(TagParameter);
 
-  if Pair.Name = '' then 
-  begin
+  if Pair.Name = '' then begin
     FreeAndNil(Pair);
     ThisTag.TagManager.DoMessage(2, pmtWarning,
       '@seealso tag doesn''t specify any name to link to, skipped', []);
-  end else
-  begin
+  end else begin
+    if not assigned(FSeeAlso) then
+      FSeeAlso := TStringPairVector.Create;
     SeeAlso.Add(Pair);
   end;
-  
+{$ELSE}
+  if not assigned(FSeeAlso) then
+    FSeeAlso := TStringPairVector.CreateIn(FTags);
+  if FSeeAlso.addextractfirstword(TagParameter) = nil then
+    ThisTag.TagManager.DoMessage(2, pmtWarning,
+      '@seealso tag doesn''t specify any name to link to, skipped', []);
+{$ENDIF}
+
   ReplaceStr := '';
 end;
 
@@ -1888,7 +2003,8 @@ constructor TBaseItems.CreateIn(AList: TMemberLists; id: TTranslationID;
 begin
   Create(False);  //member lists do not normally own objects
   TranslationID := id;
-  //if AName = '' then AName := lang???
+  if AName = '' then
+    AName := Translation(id, lgDefault);
   AList.AddObject(AName, self); //this becomes the owner
 end;
 
@@ -1926,7 +2042,7 @@ procedure TBaseItems.InsertItems(const c: TBaseItems);
 var
   i: Integer;
 begin
-  if ObjectVectorIsNilOrEmpty(c) then Exit;
+  if IsEmpty(c) then Exit;
   for i := 0 to c.Count - 1 do
     Add(TBaseItem(c.Items[i]));
 end;
@@ -1985,7 +2101,7 @@ procedure TPasItems.CopyItems(const c: TPasItems);
 var
   i: Integer;
 begin
-  if ObjectVectorIsNilOrEmpty(c) then Exit;
+  if IsEmpty(c) then Exit;
   for i := 0 to c.Count - 1 do
     Add(TPasItem(c.GetPasItemAt(i)));
 end;
@@ -2020,7 +2136,7 @@ begin
 end;
 
 //function TStringPairVector.Text(
-function TPasItems.Text(const NameValueSepapator, ItemSeparator: string): string;
+function TPasItems.Text(const NameValueSeparator, ItemSeparator: string): string;
 var
   i: Integer;
 begin
@@ -2063,21 +2179,22 @@ end;
 
 constructor TPasCio.Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string);
-const
-  owns = False;
 begin
   inherited;
-  FFields := TPasItems.Create(owns);
-  FMethods := TPasMethods.Create(owns);
-  FProperties := TPasProperties.Create(owns);
+  FFields := TPasItems.CreateIn(MemberLists, trFields);
+  FMethods := TPasMethods.CreateIn(MemberLists, trMethods);
+  FProperties := TPasProperties.CreateIn(MemberLists, trProperties);
 end;
 
 destructor TPasCio.Destroy;
 begin
+{$IFDEF old}
   //Ancestors.Free;
   Fields.Free;
   Methods.Free;
   Properties.Free;
+{$ELSE}
+{$ENDIF}
   inherited;
 end;
 
@@ -2141,8 +2258,10 @@ begin
         Fields.SortShallow;
   end;
 
-  if (Methods <> nil) and (ssMethods in SortSettings) then
-    Methods.Sort( {$IFDEF FPC}@{$ENDIF} ComparePasMethods);
+  if (Methods <> nil) and (ssMethods in SortSettings) then begin
+    if Methods.Count > 1 then //Delphi bug!
+      Methods.Sort( {$IFDEF FPC}@{$ENDIF} ComparePasMethods);
+  end;
 
   if (Properties <> nil) and (ssProperties in SortSettings) then
     Properties.SortShallow;
@@ -2202,10 +2321,20 @@ begin
 end;
 
 function TPasCio.FirstAncestor: TPasCio;
+var
+  obj: TObject absolute Result;
 begin
-  if Ancestors.Count <> 0 then
+(* some problem with an non-nil non-TPasCio ancestor!
+*)
+  if Ancestors.Count > 0 then begin
+  {$IFDEF old}
     Result := Ancestors.Objects[0] as TPasCio
-  else
+  {$ELSE}
+    obj := Ancestors.Objects[0];  // as TPasCio
+    if (obj <> nil) and not (obj is TPasCio) then
+      Result := nil;
+  {$ENDIF}
+  end else
     Result := nil;
 end;
 
@@ -2229,28 +2358,121 @@ end;
 
 constructor TPasUnit.Create(AOwner: TPasScope; AKind: TTokenType;
   const AName: string);
-const
-  owns = False;
 begin
   inherited;
-  FTypes := TPasItems.Create(owns);
-  FVariables := TPasItems.Create(owns);
-  FCIOs := TPasItems.Create(owns);
-  FConstants := TPasItems.Create(owns);
-  FFuncsProcs := TPasMethods.Create(owns);
+  FTypes := TPasItems.CreateIn(MemberLists, trTypes);
+  FVariables := TPasItems.CreateIn(MemberLists, trVariables);
+  FCIOs := TPasItems.CreateIn(MemberLists, trCio);
+  FConstants := TPasItems.CreateIn(MemberLists, trConstants);
+  FFuncsProcs := TPasMethods.CreateIn(MemberLists, trFunctionsAndProcedures);
   //FUsesUnits := TStringVector.Create;
+{$IFDEF BaseAuthors}
+{$ELSE}
+  FAuthors := TStringVector.Create;
+{$ENDIF}
 end;
 
 destructor TPasUnit.Destroy;
 begin
+{$IFDEF BaseAuthors}
+{$ELSE}
+  FAuthors.Free;
+{$ENDIF}
+{$IFDEF old}
   FCIOs.Free;
   FConstants.Free;
   FFuncsProcs.Free;
   FTypes.Free;
   //FUsesUnits.Free;
   FVariables.Free;
+{$ELSE}
+{$ENDIF}
   inherited;
 end;
+
+{$IFDEF BaseAuthors}
+  //everything in TBaseItem
+{$ELSE}
+procedure TPasUnit.RegisterTags(TagManager: TTagManager);
+begin
+  inherited;
+  TTag.Create(TagManager, 'author', nil, {$IFDEF FPC}@{$ENDIF} StoreAuthorTag,
+    [toParameterRequired]);
+  TTag.Create(TagManager, 'created', nil, {$IFDEF FPC}@{$ENDIF} StoreCreatedTag,
+    [toParameterRequired, toRecursiveTags, toAllowNormalTextInside]);
+  TTag.Create(TagManager, 'lastmod', nil, {$IFDEF FPC}@{$ENDIF} StoreLastModTag,
+    [toParameterRequired, toRecursiveTags, toAllowNormalTextInside]);
+  TTag.Create(TagManager, 'cvs', nil, {$IFDEF FPC}@{$ENDIF} StoreCVSTag,
+    [toParameterRequired]);
+end;
+
+procedure TPasUnit.SetAuthors(const Value: TStringVector);
+begin
+  FAuthors.Assign(Value);
+end;
+
+procedure TPasUnit.StoreAuthorTag(
+  ThisTag: TTag; var ThisTagData: TObject;
+  EnclosingTag: TTag; var EnclosingTagData: TObject;
+  const TagParameter: string; var ReplaceStr: string);
+begin
+  if TagParameter = '' then exit;
+  Authors.Add(TagParameter);
+  ReplaceStr := '';
+end;
+
+procedure TPasUnit.StoreCreatedTag(
+  ThisTag: TTag; var ThisTagData: TObject;
+  EnclosingTag: TTag; var EnclosingTagData: TObject;
+  const TagParameter: string; var ReplaceStr: string);
+begin
+  if TagParameter = '' then exit;
+  FCreated := TagParameter;
+  ReplaceStr := '';
+end;
+
+procedure TPasUnit.StoreLastModTag(
+  ThisTag: TTag; var ThisTagData: TObject;
+  EnclosingTag: TTag; var EnclosingTagData: TObject;
+  const TagParameter: string; var ReplaceStr: string);
+begin
+  if TagParameter = '' then exit;
+  FLastMod := TagParameter;
+  ReplaceStr := '';
+end;
+
+procedure TPasUnit.StoreCVSTag(
+  ThisTag: TTag; var ThisTagData: TObject;
+  EnclosingTag: TTag; var EnclosingTagData: TObject;
+  const TagParameter: string; var ReplaceStr: string);
+var
+  s: string;
+begin
+  if Length(TagParameter)>1 then begin
+    case TagParameter[2] of
+    'D': begin
+           if Copy(TagParameter,1,7) = '$Date: ' then begin
+             LastMod := Trim(Copy(TagParameter, 7, Length(TagParameter)-7-1)) + ' UTC';
+             ReplaceStr := '';
+           end;
+         end;
+    'A': begin
+           if Copy(TagParameter,1,9) = '$Author: ' then begin
+             s := Trim(Copy(TagParameter, 9, Length(TagParameter)-9-1));
+             if Length(s) > 0 then begin
+               if not Assigned(Authors) then
+                 FAuthors := NewStringVector;
+               Authors.AddNotExisting(s);
+               ReplaceStr := '';
+             end;
+           end;
+         end;
+    //else //case
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 function TPasUnit.FindItemInAncestors(const ItemName: string): TPasItem;
 var
@@ -2385,7 +2607,7 @@ end;
 function TPasMethod.GetPos: TTextStreamPos;
 begin
   Result := FImplPos.Start;
-  if Result = 0 then
+  if Result <= 0 then
     Result := FDeclPos.Start;
 end;
 
@@ -2416,18 +2638,18 @@ function TPasMethod.GetRaises: TStringPairVector;
 begin
   Result := FRaises;
   if Result = nil then
-    TObjectVector(Result) := EmptyObjectVector;
+    Result := EmptyStringPairVector; //EmptyObjectVector;
 end;
 
 procedure TPasMethod.StoreRaisesTag(
   ThisTag: TTag; var ThisTagData: TObject;
   EnclosingTag: TTag; var EnclosingTagData: TObject;
   const TagParameter: string; var ReplaceStr: string);
-var
-  Pair: TStringPair;
+//var  Pair: TStringPair;
 begin
 (* Rarely used, create list only if required.
 *)
+{$IFDEF old}
   Pair := TStringPair.CreateExtractFirstWord(TagParameter);
 
   if Pair.Name = '' then begin
@@ -2436,11 +2658,18 @@ begin
     FreeAndNil(Pair);
   end else begin
     if not Assigned(FRaises) then begin
-      FRaises := TStringPairVector.Create(True);
-      MemberLists.AddObject('raises', FRaises);
+      FRaises := TStringPairVector.CreateIn(FTags);
+      //MemberLists.AddObject('raises', FRaises);
     end;
     FRaises.Add(Pair);
   end;
+{$ELSE}
+  if not Assigned(FRaises) then
+    FRaises := TStringPairVector.CreateIn(FTags);
+  if FRaises.addextractfirstword(TagParameter) = nil then
+    ThisTag.TagManager.DoMessage(2, pmtWarning,
+      '@raises tag doesn''t specify exception name, skipped', []);
+{$ENDIF}
   ReplaceStr := '';
 end;
 
@@ -2484,11 +2713,26 @@ begin
   ReplaceStr := '';
 end;
 
+{$IFDEF new}
+function TPasMethod.GetParams: TParams;
+begin
+  Result := FParams;
+  if Result = nil then begin
+    Result := EmptyItemList;
+  end;
+end;
+{$ELSE}
+{$ENDIF}
+
 function TPasMethod.NeedParams: TParams;
 begin
   if FParams = nil then begin
+  {$IFDEF old}
     FParams := TParams.Create(False);
     MemberLists.AddObject('parameters', FParams);
+  {$ELSE}
+    FParams := TParams.CreateIn(MemberLists, trParameters, 'parameters');
+  {$ENDIF}
   end;
   Result := FParams;
 end;
@@ -2526,7 +2770,7 @@ begin
   Result :=
     (Returns <> '')
     //or (not ObjectVectorIsNilOrEmpty(Params))
-    or (not ObjectVectorIsNilOrEmpty(FRaises));
+    or (not IsEmpty(FRaises));
 end;
 
 procedure TPasMethod.Deserialize(const ASource: TStream);
@@ -2754,6 +2998,7 @@ end;
 initialization
   EmptyStringVector := TStringVector.Create;  //should remain empty!
   EmptyObjectVector := TObjectVector.Create(True);
+  EmptyStringPairVector := TStringPairVector.Create;
   TSerializable.Register(TPasItem);
   TSerializable.Register(TPasConstant);
   TSerializable.Register(TPasFieldVariable);
@@ -2766,4 +3011,5 @@ initialization
 finalization
   FreeAndNil(EmptyStringVector);
   FreeAndNil(EmptyObjectVector);
+  FreeAndNil(EmptyStringPairVector);
 end.

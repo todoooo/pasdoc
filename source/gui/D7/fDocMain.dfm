@@ -21,7 +21,7 @@ object DocMain: TDocMain
     Top = 0
     Width = 607
     Height = 425
-    ActivePage = tabSpelling
+    ActivePage = tabGenerate
     Align = alClient
     TabOrder = 0
     object tabOpts: TTabSheet
@@ -171,24 +171,12 @@ object DocMain: TDocMain
         TabOrder = 5
         OnClick = AnyChange
       end
-      object swBackRef: TCheckBox
-        Left = 8
-        Top = 316
-        Width = 161
-        Height = 17
-        Caption = 'Default BackReferences'
-        Checked = True
-        State = cbChecked
-        TabOrder = 6
-        Visible = False
-        OnClick = AnyChange
-      end
       object lbMarkers: TMemo
         Left = 100
         Top = 208
         Width = 97
         Height = 57
-        TabOrder = 7
+        TabOrder = 6
         OnChange = AnyChange
       end
       object swMarkers: TComboBox
@@ -198,7 +186,7 @@ object DocMain: TDocMain
         Height = 21
         Style = csDropDownList
         ItemHeight = 13
-        TabOrder = 8
+        TabOrder = 7
         OnChange = AnyChange
         Items.Strings = (
           'ignore'
@@ -212,7 +200,7 @@ object DocMain: TDocMain
         Width = 599
         Height = 29
         Align = alTop
-        TabOrder = 9
+        TabOrder = 8
         inherited Label1: TLabel
           Width = 33
           Caption = 'Project'
@@ -247,7 +235,7 @@ object DocMain: TDocMain
         Font.Name = 'Wingdings'
         Font.Style = []
         ParentFont = False
-        TabOrder = 10
+        TabOrder = 9
         OnClick = Save1Click
       end
       object swSpellCheck: TCheckBox
@@ -257,7 +245,7 @@ object DocMain: TDocMain
         Height = 17
         Alignment = taLeftJustify
         Caption = 'Check Spelling'
-        TabOrder = 11
+        TabOrder = 10
         OnClick = swSpellCheckClick
       end
       object swImplicitVisibility: TComboBox
@@ -268,13 +256,23 @@ object DocMain: TDocMain
         Style = csDropDownList
         ItemHeight = 13
         ItemIndex = 0
-        TabOrder = 12
+        TabOrder = 11
         Text = 'public'
         OnChange = AnyChange
         Items.Strings = (
           'public'
           'published'
           'implicit')
+      end
+      object swShowUses: TCheckBox
+        Left = 8
+        Top = 320
+        Width = 97
+        Height = 17
+        Caption = 'Show Uses'
+        Checked = True
+        State = cbChecked
+        TabOrder = 12
       end
     end
     object tabFiles: TTabSheet

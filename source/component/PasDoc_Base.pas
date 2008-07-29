@@ -285,9 +285,9 @@ const
       )
     )
   }
-  PASDOC_DATE = '2008-06-22';
+  PASDOC_DATE = '2008-07-29';
   { }
-  PASDOC_VERSION = '0.11.0';
+  PASDOC_VERSION = '0.11.2 DoDi';
   { }
   PASDOC_NAME_AND_VERSION = PASDOC_NAME + ' ' + PASDOC_VERSION;
   { }
@@ -610,7 +610,7 @@ begin
   RemoveExcludedItems(TPasItems(FUnits));
 
   { check if we have any units successfully parsed and not @excluded }
-  if ObjectVectorIsNilOrEmpty(FUnits) then
+  if IsEmpty(FUnits) then
   begin
     if UnitsCountBeforeExcluding <> 0 then
       DoError('%d units were successfully parsed, but they are all ' +

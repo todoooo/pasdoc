@@ -344,7 +344,7 @@ begin
   FSwitchOptions['V'] := True;
   FSwitchOptions['X'] := True;
 
-  FSymbols := TStringPairVector.Create(true);
+  FSymbols := TStringPairVector.Create;
 
   FTokenizers[0] := TTokenizer.Create(s, OnMessageEvent, VerbosityLevel, 
     AStreamName, AStreamPath);
@@ -387,7 +387,7 @@ begin
   if not IsSymbolDefined(Name) then 
   begin
     DoMessage(6, pmtInformation, 'Symbol "%s" defined', [Name]);
-    FSymbols.Add(TStringPair.Create(Name, '', SymbolIsNotMacro));
+    FSymbols.AddPair(TStringPair.Create(Name, '', SymbolIsNotMacro));
   end;
 end;
 
@@ -412,7 +412,7 @@ begin
   if i = -1 then
   begin
     DoMessage(6, pmtInformation, 'Macro "%s" defined as "%s"', [Name, Value]);
-    FSymbols.Add(TStringPair.Create(Name, Value, SymbolIsMacro));
+    FSymbols.AddPair(TStringPair.Create(Name, Value, SymbolIsMacro));
   end else
   begin
     DoMessage(6, pmtInformation, 'Macro "%s" RE-defined as "%s"', [Name, Value]);

@@ -1028,7 +1028,7 @@ var
   U: TPasUnit;
 begin
   DoMessage(2, pmtInformation, 'Creating links ...', []);
-  if ObjectVectorIsNilOrEmpty(Units) then Exit;
+  if IsEmpty(Units) then Exit;
 
   if Introduction <> nil then
   begin
@@ -1057,7 +1057,7 @@ begin
     AssignLinks(U, nil, U.Members);
   //actions required after deserialization
 
-    if not ObjectVectorIsNilOrEmpty(U.CIOs) then begin
+    if not IsEmpty(U.CIOs) then begin
       for j := 0 to U.CIOs.Count - 1 do begin
         CO := TPasCio(U.CIOs.PasItemAt[j]);
         CO.MyUnit := U;
@@ -1568,7 +1568,7 @@ var
     Anchor: TAnchorItem;
     SectionEntry: TStringPair;
   begin
-    Result := TStringPairVector.Create(true);
+    Result := TStringPairVector.Create;
     
     repeat
       if AnchorIndex = ItemAnchors.Count then
@@ -1584,7 +1584,7 @@ var
         SectionEntry := TStringPair.Create(Anchor.Name, Anchor.SectionCaption);
         SectionEntry.Data := CollectSections(MinLevel + 1);
         if MinLevel <= MaxLevel then
-          Result.Add(SectionEntry) else
+          Result.AddPair(SectionEntry) else
         begin
           TStringPairVector(SectionEntry.Data).Free;
           SectionEntry.Free;
@@ -1601,7 +1601,7 @@ var
         SectionEntry := TStringPair.Create('', '');
         SectionEntry.Data := CollectSections(MinLevel + 1);
         if MinLevel <= MaxLevel then
-          Result.Add(SectionEntry) else
+          Result.AddPair(SectionEntry) else
         begin
           TStringPairVector(SectionEntry.Data).Free;
           SectionEntry.Free;
@@ -1973,7 +1973,7 @@ procedure TDocGenerator.ExpandDescriptions;
       ExpandCollection(PreExpand, U.Types);
       ExpandCollection(PreExpand, U.FuncsProcs);
 
-      if not ObjectVectorIsNilOrEmpty(U.CIOs) then
+      if not IsEmpty(U.CIOs) then
         for j := 0 to U.CIOs.Count - 1 do begin
           CO := TPasCio(U.CIOs.PasItemAt[j]);
           ExpandPasItem(PreExpand, CO);
@@ -2074,7 +2074,7 @@ var
 begin
   Result := nil;
 
-  if ObjectVectorIsNilOrEmpty(Units) then Exit;
+  if IsEmpty(Units) then Exit;
 
   case Length(NameParts) of
     1: begin
@@ -2430,7 +2430,7 @@ procedure TDocGenerator.WriteUnits(const HL: integer);
 var
   i: Integer;
 begin
-  if ObjectVectorIsNilOrEmpty(Units) then Exit;
+  if IsEmpty(Units) then Exit;
   for i := 0 to Units.Count - 1 do begin
     WriteUnit(HL, Units.UnitAt[i]);
   end;
@@ -2620,7 +2620,7 @@ var
   U: TPasUnit;
   OverviewFileName: string;
 begin
-  if not ObjectVectorIsNilOrEmpty(FUnits) then
+  if not IsEmpty(FUnits) then
   begin
     OverviewFileName := OverviewFilesInfo[ofGraphVizUses].BaseFileName + '.dot';
     if CreateStream(OverviewFileName, True) = csError then 
@@ -2636,7 +2636,7 @@ begin
       if FUnits.PasItemAt[i] is TPasUnit then 
       begin
         U := TPasUnit(FUnits.PasItemAt[i]);
-        if not StringVectorIsNilOrEmpty(U.UsesUnits) then 
+        if not IsEmpty(U.UsesUnits) then 
         begin
           for j := 0 to U.UsesUnits.Count-1 do 
           begin
@@ -3379,7 +3379,7 @@ var
   FoundItem: TBaseItem;
   i, j, l: Integer;
   s: string;
-  pl: TStandardDirective;  
+  pl: TStandardDirective;
   { ncstart marks what part of Code was already written:
     Code[1..ncstart - 1] is already written to output stream. }
   ncstart: Integer;
@@ -3392,29 +3392,30 @@ begin
   ncstart := i;
   while i <= l do begin
     case Code[i] of
-      '_', 'A'..'Z', 'a'..'z': 
+      '_', 'A'..'Z', 'a'..'z':
         begin
           WriteConverted(Copy(Code, ncstart, i - ncstart));
           { assemble item }
           j := i;
           repeat
             Inc(i);
-          until (i > l) or 
+          until (i > l) or
             (not (Code[i] in ['.', '_', '0'..'9', 'A'..'Z', 'a'..'z']));
           s := Copy(Code, j, i - j);
 
-          if not NameFound and (s = Item.Name) then 
-          begin
+          if not NameFound and (s = Item.Name) then begin
+          //first occurence of item name(?)
             WriteDirect(NameLinkBegin);
             if WriteItemLink then
-              WriteDirect(MakeItemLink(Item, s, lcCode)) else
+              WriteDirect(MakeItemLink(Item, s, lcCode))
+            else
               WriteConverted(s);
             WriteDirect(NameLinkEnd);
             NameFound := True;
           end else
           begin
             { Special processing for standard directives.
-            
+
               Note that we check whether S is standard directive *after*
               we checked whether S matches P.Name, otherwise we would
               mistakenly think that 'register' is a standard directive
@@ -3425,13 +3426,13 @@ begin
                 'procedure Foo; register'
               or even
                 'procedure Register; register;'
-              ) because we safeguard against it using NameFound and 
+              ) because we safeguard against it using NameFound and
               SearchForLink state variables.
-              
-              That said, WriteCodeWithLinksCommon still remains a hackish 
+
+              That said, WriteCodeWithLinksCommon still remains a hackish
               excuse to not cooperate better with PasDoc_Parser when
               generating FullDeclaration of every item. }
-              
+          { TODO : Item attributes are available as a set. Use it here? }
             pl := StandardDirectiveByName(s);
             case pl of
               SD_ABSTRACT, SD_ASSEMBLER, SD_CDECL, SD_DYNAMIC, SD_EXPORT,
@@ -3459,10 +3460,10 @@ begin
                 end;
             end;
           end;
-          
-          ncstart := i;          
+
+          ncstart := i;
         end;
-      ':', '=': 
+      ':', '=':
         begin
           SearchForLink := True;
           Inc(i);

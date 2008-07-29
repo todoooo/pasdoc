@@ -16,7 +16,7 @@ unit PasDoc_Parser;
 
 (* ToDo:
 - use format string for construction of FullDeclaration.
-- chain comments on items.
++ chain comments on items.
 - handle block comment (unchained).
 - handle nested declarations (also: generators!)
 - parse implementation section
@@ -25,6 +25,8 @@ unit PasDoc_Parser;
 *)
 
 {$I pasdoc_defines.inc}
+
+{-$DEFINE impl} //parse implementation sections?
 
 interface
 
@@ -170,8 +172,11 @@ type
   protected
     FCommentMarkers: TStringList;
     FMarkersOptional: boolean;
+  {$IFDEF impl}
   //in implementation section?
     Impl: boolean;
+  {$ELSE}
+  {$ENDIF}
   //Token chain
     Pending, BlockComment: TToken;
   //Tentative item, initialized by QualID.
@@ -229,23 +234,15 @@ type
     }
     procedure ParseVariables(inUnit: boolean);
 
-    { Read all tokens until you find a semicolon at brace-level 0 and
-      end-level (between "record" and "end" keywords) also 0.
-
-      Alternatively, also stops before reading "end" without beginning
-      "record" (so it can handle some cases where declaration doesn't end
-      with semicolon).
-
-      Alternatively, only if IsInRecordCase, also stops before reading
-      ')' without matching '('. That's because fields' declarations
-      inside record case may be terminated by just ')' indicating
-      that this case clause terminates, without a semicolon.
+    { SkipDeclaration reads all tokens until an unmatched ")", "end" or ";".
+      A trailing ";" is not required, but will be appended if not found.
 
       If you pass Item <> nil then all read data will be
       appended to Item.FullDeclaration. Also Item.IsLibrarySpecific,
       Item.IsPlatformSpecific and Item.IsDeprecated will be set to true
       if appropriate hint directive will occur in source file. }
-    procedure SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem);
+    procedure SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem;
+      fTruncate: boolean);
 
     { Parses a constructor, a destructor, a function or a procedure
       or an operator (for FPC).
@@ -857,27 +854,23 @@ begin
     FlushBackRems(DeclLast, Ident);
 //lookup possibly existing item
   Result := nil;
+{$IFDEF impl}
   if Impl then begin
     SplitNameParts(Ident.Data, parts);
     item := CurScope.FindName(parts);
   end;
+{$ELSE}
+{$ENDIF}
   if Result = nil then begin
     Result := AClass.Create(CurScope, tt, Ident.Data);
-  {$IFDEF old}
-    Result.NameStream := Ident.StreamName;
-    Result.NamePosition := Ident.BeginPosition;
-  {$ELSE}
     Result.DeclPos := Ident.Location;
+  {$IFDEF impl}
     if Impl then Result.ImplPos := Ident.Location; //overwrite later
+  {$ELSE}
   {$ENDIF}
   end else begin
     method := item as TPasMethod; //only methods can have separate declaration and definition
-  {$IFDEF old}
-    method.ImplToken := Ident;
-    Identifier := nil; //now owned by method
-  {$ELSE}
     method.ImplPos := Ident.Location;
-  {$ENDIF}
   end;
   FreeAndNil(Identifier); //this is where Ident must reside!
 (* actually DeclLast is the previously created item (if any).
@@ -940,7 +933,7 @@ begin //ParseFieldsVariables
 //record type
   Recorder := '';
   Expect(SYM_COLON);
-  SkipDeclaration(False, FirstItem);
+  SkipDeclaration(False, FirstItem, True);  //trim lengthy initializers
 //past ";" or ")" or END
   if inUnit then  //modifiers apply only to unit variables
     ParseVariableModifiers(FirstItem);
@@ -998,7 +991,10 @@ begin
   tt := GetNextToken;
   U := CreateItem(TPasUnit, tt, nil) as TPasUnit;
   U.CurVisibility := viPublic;
+{$IFDEF impl}
   Impl := False;
+{$ELSE}
+{$ENDIF}
   OpenScope(U);
   case tt of
   KEY_UNIT:     ParseUnit(U);
@@ -1090,9 +1086,12 @@ qualid (here)
     The used units may be required in "ancestor" search?
   *)
     QualID(True); //returns Identifier
+  {$IFDEF impl}
     if Impl then
       FreeAndNil(Identifier)
     else
+  {$ELSE}
+  {$ENDIF}
       U.UsesUnits.Append(Identifier.Data);
 
     if Skip(KEY_IN) then begin
@@ -1168,7 +1167,7 @@ All possible modifiers should be peeked!
         Mode := MODE_UNDEFINED;
       end;
     KEY_IMPLEMENTATION:
-    {$IFDEF old}
+    {$IFnDEF impl}
       break; //Finished := True;
     {$ELSE}
       begin
@@ -1507,7 +1506,7 @@ begin
 *)
   i := CreateItem(TPasConstant, KEY_CONST, QualId(False));
   DoMessage(5, pmtInformation, 'Parsing constant %s', [i.Name]);
-  SkipDeclaration(True, i);
+  SkipDeclaration(True, i, True); //strip lengthy initializers
   i.FullDeclaration := Recorded;
   CheckToken(Token, SYM_SEMICOLON);
 end;
@@ -1599,7 +1598,7 @@ decl: [ params ] ":" type [index] [reader] [writer] [";"] [default *] [stored *]
   end;
 
 { read the rest of declaration }
-  SkipDeclaration(false, p); //doesn't read "default" etc., past first ";"
+  SkipDeclaration(false, p, False); //doesn't read "default" etc., past first ";"
 //skip further specifiers
   while (PeekNextToken = tok_identifier)
   and (Peeked.Directive in [sd_default, sd_nodefault, sd_stored]) do begin
@@ -1704,16 +1703,20 @@ decl can be
   { TODO : Treat <type>=<class> as class(<class>), for class tree construction
     and name search in ancestors. }
     NormalType := CreateItem(TPasType, KEY_TYPE, Identifier);
-    SkipDeclaration(False, NormalType);
+    SkipDeclaration(False, NormalType, False);
     NormalType.FullDeclaration := Recorded;
   end;
 end;
 
 { ---------------------------------------------------------------------------- }
 
-procedure TParser.SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem);
+procedure TParser.SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem;
+  fTruncate: boolean);
 var
   Level: Integer;
+  pEq, pBr1, pBr2: integer;
+const
+  MaxConstLength = 50;  //strip longer constant initializers
 begin
 (* intended use: skip all type specifiers after ":" (ref) or "=" (decl).
 Take into account (nesting level) embedded:
@@ -1728,20 +1731,37 @@ Take into account (nesting level) embedded:
   "]" end of property index specifier
   END of record (case)
 *)
+(* Allow to strip lengthy array/record constants.
+  Remember recorded position of first "(", after "=".
+  Recorder holds all characters, retrieval is possible after parse.
+  Return position to the caller, or remove it immediately?
+  Since we also parse following attributes, the removal must be very selective!
+
+  Better separate into parse_type, parse_initializer, and parse the
+  modifiers in more procs, as appropriate to the actual declaration.
+*)
   if fSkipNext and not (GetNextToken in [SYM_EQUAL, SYM_COLON]) then
     DoError('expected "=" or ":", got: %s', [Token.Description]);
 
+  pBr2 := 0;
   Level := 0;
   repeat
     case GetNextToken of
     SYM_LEFT_BRACKET,
     SYM_LEFT_PARENTHESIS: Inc(Level);
-    SYM_RIGHT_BRACKET,
-    SYM_RIGHT_PARENTHESIS: Dec(Level);
+    SYM_RIGHT_BRACKET:    Dec(Level);
+    SYM_RIGHT_PARENTHESIS:
+      begin
+        pBr2 := Length(Recorder); //is ")" really always the last character?
+        Dec(Level);
+      //remove comments inside initializers - only!?
+        CancelComments;
+      end;
     SYM_SEMICOLON:
       if level = 0 then begin
       (* Include type modifiers, else break.
         Don't add the modifiers to CurItem, they apply to the type.
+        But when we search here, we'll loose these modifiers!
         See also: ParseCDFP
 
         Unit variable modifiers are checked by the caller,
@@ -1776,15 +1796,23 @@ Take into account (nesting level) embedded:
       end;
     end; //case
   until Level < 0;
-(* /regular description should always end with a ";",
+(* regular description should always end with a ";",
   even if a ")" or "END" was reached.
   Whitespace may have been added, after a ";"!
 *)
-  Recorder := Recorded(True);
+  Recorder := Recorded(True); //strip last (white?) token text
   if Recorder[Length(Recorder)] <> ';' then
     Recorder := Recorder + ';';
+//now check for "= (...)" - what about "= procedure(...)"?
+  if fTruncate and (pBr2 > 0) then begin
+  //where exactly sits the last ")"?
+    pEq := Pos('=', Recorder);
+    if pEq > 0 then begin
+      pBr1 := Pos('(', Recorder);
+      if (pEq < pBr1) and (pBr2 - pBr1 > MaxConstLength) then
+        Recorder := Copy(Recorder, 1, pBr1) + '...' + Copy(Recorder, pBr2, Length(Recorder));
+    end;
+  end;
 end;
-
-{ ------------------------------------------------------------ }
 
 end.

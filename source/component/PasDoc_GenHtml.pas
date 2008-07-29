@@ -462,7 +462,7 @@ var
   s, S1, S2: string;
   Address: string;
 begin
-  if StringVectorIsNilOrEmpty(Authors) then Exit;
+  if IsEmpty(Authors) then Exit;
 
   if (Authors.Count = 1) then
     WriteHeading(HL, 'authors', FLanguage.Translation[trAuthor])
@@ -578,11 +578,11 @@ begin
   SectionsAvailable := [dsDescription];
   if Assigned(CIO.Ancestors) and (CIO.Ancestors.Count > 0) then
     Include(SectionsAvailable, dsHierarchy);
-  if not ObjectVectorIsNilOrEmpty(CIO.Fields) then
+  if not IsEmpty(CIO.Fields) then
     Include(SectionsAvailable, dsFields);
-  if not ObjectVectorIsNilOrEmpty(CIO.Methods) then
+  if not IsEmpty(CIO.Methods) then
     Include(SectionsAvailable, dsMethods);
-  if not ObjectVectorIsNilOrEmpty(CIO.Properties) then
+  if not IsEmpty(CIO.Properties) then
     Include(SectionsAvailable, dsProperties);
 
   s := GetCIOTypeName(CIO.MyType) + ' ' + CIO.Name;
@@ -623,7 +623,7 @@ begin
   WriteConverted(CIO_NAMES[CIO.MyType]);
   WriteConverted(GetClassDirectiveName(CIO.ClassDirective));
 
-  if not StringVectorIsNilOrEmpty(CIO.Ancestors) then begin
+  if not IsEmpty(CIO.Ancestors) then begin
     WriteConverted('(');
     for i := 0 to CIO.Ancestors.Count - 1 do
     begin
@@ -644,19 +644,22 @@ begin
   WriteItemLongDescription(CIO);
 
   { Write Hierarchy }
-  if not StringVectorIsNilOrEmpty(CIO.Ancestors) then begin
+  if not IsEmpty(CIO.Ancestors) then begin
     WriteAnchor(SectionAnchors[dsHierarchy]);
     WriteHeading(HL + 1, 'hierarchy', SectionHeads[dsHierarchy]);
     WriteDirect('<ul class="hierarchy">');
+  { TODO : problem with non-CIO ancestors!
+    Resulting from "type A = B;", where B is some class.
+  }
     WriteHierarchy(CIO.Ancestors.FirstName, CIO.FirstAncestor);
     WriteDirect('<li class="thisitem">' + CIO.Name + '</li>');
     WriteDirect('</ul>');
   end;
 
   AnyItem :=
-    (not ObjectVectorIsNilOrEmpty(CIO.Fields)) or
-    (not ObjectVectorIsNilOrEmpty(CIO.Methods)) or
-    (not ObjectVectorIsNilOrEmpty(CIO.Properties));
+    (not IsEmpty(CIO.Fields)) or
+    (not IsEmpty(CIO.Methods)) or
+    (not IsEmpty(CIO.Properties));
 
   { AnyItem is used here to avoid writing headers "Overview"
     and "Description" when there are no items. }
@@ -673,8 +676,11 @@ begin
     WritePropertiesDetailed;
   end;
 
+{$IFDEF BaseAuthors}
   WriteAuthors(HL + 1, CIO.Authors);
   WriteDates(HL + 1, CIO.Created, CIO.LastMod);
+{$ELSE}
+{$ENDIF}
   WriteFooter;
   WriteAppInfo;
   WriteEndOfDocument;
@@ -721,7 +727,7 @@ var
   j: Integer;
   p: TPasCio;
 begin
-  if ObjectVectorIsNilOrEmpty(c) then Exit;
+  if IsEmpty(c) then Exit;
 
   WriteAnchor('%40Classes');
 
@@ -902,7 +908,7 @@ procedure TGenericHTMLDocGenerator.WriteItemsSummary(
 var 
   i: Integer;
 begin
-  if ObjectVectorIsNilOrEmpty(Items) then Exit;
+  if IsEmpty(Items) then Exit;
   
   WriteAnchor(SectionAnchor);
 
@@ -924,7 +930,7 @@ var
   i: Integer;
   ColumnsCount: Cardinal;
 begin
-  if ObjectVectorIsNilOrEmpty(Items) then Exit;
+  if IsEmpty(Items) then Exit;
 
   WriteHeading(HeadingLevel + 1, 'detail', FLanguage.Translation[SectionName]);
   
@@ -1001,9 +1007,13 @@ procedure TGenericHTMLDocGenerator.WriteItemLongDescription(
 
   { writes the parameters or exceptions list }
   procedure WriteParamsOrRaises(Func: TPasMethod; const Caption: TTranslationID;
-    List: TStringPairVector; LinkToParamNames: boolean; 
+  {$IFDEF old}
+    List: TStringPairVector; LinkToParamNames: boolean;
+  {$ELSE}
+    List: TStrings; LinkToParamNames: boolean;
+  {$ENDIF}
     const CssListClass: string);
-    
+
     procedure WriteParameter(const ParamName: string; const Desc: string);
     begin
       { Note that <dt> and <dd> below don't need any CSS class,
@@ -1016,24 +1026,32 @@ procedure TGenericHTMLDocGenerator.WriteItemLongDescription(
       WriteSpellChecked(Desc);
       WriteDirectLine('</dd>');
     end;
-    
+
   var
     i: integer;
     ParamName: string;
   begin
-    if ObjectVectorIsNilOrEmpty(List) then
+    if IsEmpty(List) then
       Exit;
 
     WriteDescriptionSectionHeading(Caption);
     WriteDirectLine('<dl class="' + CssListClass + '">');
-    for i := 0 to List.Count - 1 do 
-    begin
+    for i := 0 to List.Count - 1 do begin
+    {$IFDEF old}
       ParamName := List[i].Name;
-      
+    {$ELSE}
+      ParamName := List.Names[i]; //this should always work
+    {$ENDIF}
+
       if LinkToParamNames then
        ParamName := SearchLink(ParamName, Func, '', true);
-      
+
+    {$IFDEF old}
       WriteParameter(ParamName, List[i].Value);
+    {$ELSE}
+    //this one requires proper resolution of Values[]!
+      WriteParameter(ParamName, List.ValueFromIndex[i]);
+    {$ENDIF}
     end;
     WriteDirectLine('</dl>');
   end;
@@ -1044,7 +1062,7 @@ procedure TGenericHTMLDocGenerator.WriteItemLongDescription(
     SeeAlsoItem: TBaseItem;
     SeeAlsoLink: string;
   begin
-    if ObjectVectorIsNilOrEmpty(SeeAlso) then
+    if IsEmpty(SeeAlso) then
       Exit;
 
     WriteDescriptionSectionHeading(trSeeAlso);
@@ -1091,7 +1109,7 @@ var
   i: Integer;
 begin
   if not Assigned(AItem) then Exit;
-  
+
   //if AItem.IsDeprecated then
   if AItem.HasAttribute[SD_DEPRECATED] then
     WriteHintDirective(FLanguage.Translation[trDeprecated]);
@@ -1129,7 +1147,7 @@ begin
       if OpenCloseParagraph then WriteEndOfParagraph;
     end else
     begin
-      if (AItem is TPasCio) and not StringVectorIsNilOrEmpty(TPasCio(AItem).Ancestors) then begin
+      if (AItem is TPasCio) and not IsEmpty(TPasCio(AItem).Ancestors) then begin
         AncestorName := TPasCio(AItem).Ancestors.FirstName;
         Ancestor := TPasCio(AItem).FirstAncestor;
         if Assigned(Ancestor) and (Ancestor is TPasItem) then
@@ -1145,15 +1163,17 @@ begin
       end;
     end;
   end;
-  
+
   if AItem is TPasMethod then
   begin
+  { TODO : problem with changed item types (params became TPasItems!) }
     AItemMethod := TPasMethod(AItem);
   {$IFDEF old}
     WriteParamsOrRaises(AItemMethod, trParameters,
       AItemMethod.Params, false, 'parameters');
   {$ELSE}
     { TODO : WriteParamsOrRaises with Params:PasItems }
+    //WriteParamsOrRaises(AItemMethod, trParameters, AItemMethod.Params, false, 'parameters');
   {$ENDIF}
     WriteReturnDesc(AItemMethod, AItemMethod.Returns);
     WriteParamsOrRaises(AItemMethod, trExceptionsRaised,
@@ -1161,12 +1181,12 @@ begin
   end;
 
   WriteSeeAlso(AItem.SeeAlso);
- 
-  if AItem is TPasEnum then 
+
+  if AItem is TPasEnum then
   begin
     WriteDescriptionSectionHeading(trValues);
     WriteDirectLine('<ul>');
-    for i := 0 to TPasEnum(AItem).Members.Count - 1 do 
+    for i := 0 to TPasEnum(AItem).Members.Count - 1 do
     begin
       WriteDirectLine('<li>');
       WriteConverted(TPasEnum(AItem).Members.PasItemAt[i].FullDeclaration);
@@ -1306,7 +1326,7 @@ procedure TGenericHTMLDocGenerator.WriteOverviewFiles;
   begin
     if not CreateOverviewStream(Overview) then Exit;
     
-    if not ObjectVectorIsNilOrEmpty(Items) then 
+    if not IsEmpty(Items) then 
     begin
       WriteStartOfTable3Columns('itemstable',
         FLanguage.Translation[trName], 
@@ -1579,7 +1599,7 @@ const
     i: Integer;
     ULink: TPasItem;
   begin
-    if WriteUsesClause and not StringVectorIsNilOrEmpty(U.UsesUnits) then begin
+    if WriteUsesClause and not IsEmpty(U.UsesUnits) then begin
       //WriteHeading(HL, 'uses', 'uses');
       WriteHeading(HL, 'uses', FLanguage.Translation[trUses]);
       WriteDirect('<ul class="useslist">');
@@ -1685,12 +1705,12 @@ begin
   SectionHeads[dsVariables]:= FLanguage.Translation[trVariables];
 
   SectionsAvailable := [dsDescription];
-  ConditionallyAddSection(dsUses, WriteUsesClause and not StringVectorIsNilOrEmpty(U.UsesUnits));
-  ConditionallyAddSection(dsClasses, not ObjectVectorIsNilOrEmpty(U.CIOs));
-  ConditionallyAddSection(dsFuncsProcs, not ObjectVectorIsNilOrEmpty(U.FuncsProcs));
-  ConditionallyAddSection(dsTypes, not ObjectVectorIsNilOrEmpty(U.Types));
-  ConditionallyAddSection(dsConstants, not ObjectVectorIsNilOrEmpty(U.Constants));
-  ConditionallyAddSection(dsVariables, not ObjectVectorIsNilOrEmpty(U.Variables));
+  ConditionallyAddSection(dsUses, WriteUsesClause and not IsEmpty(U.UsesUnits));
+  ConditionallyAddSection(dsClasses, not IsEmpty(U.CIOs));
+  ConditionallyAddSection(dsFuncsProcs, not IsEmpty(U.FuncsProcs));
+  ConditionallyAddSection(dsTypes, not IsEmpty(U.Types));
+  ConditionallyAddSection(dsConstants, not IsEmpty(U.Constants));
+  ConditionallyAddSection(dsVariables, not IsEmpty(U.Variables));
 
   DoMessage(2, pmtInformation, 'Writing Docs for unit "%s"', [U.Name]);
   WriteStartOfDocument(U.Name);
@@ -1722,13 +1742,13 @@ begin
   WriteUnitUses(HL + 1, U);
 
   AnyItemDetailed :=
-    (not ObjectVectorIsNilOrEmpty(U.FuncsProcs)) or
-    (not ObjectVectorIsNilOrEmpty(U.Types)) or
-    (not ObjectVectorIsNilOrEmpty(U.Constants)) or
-    (not ObjectVectorIsNilOrEmpty(U.Variables));
+    (not IsEmpty(U.FuncsProcs)) or
+    (not IsEmpty(U.Types)) or
+    (not IsEmpty(U.Constants)) or
+    (not IsEmpty(U.Variables));
 
   AnyItemSummary := AnyItemDetailed or
-    (not ObjectVectorIsNilOrEmpty(U.CIOs));
+    (not IsEmpty(U.CIOs));
 
   { AnyItemSummary/Detailed are used here to avoid writing headers
     "Overview" and "Description" when there are no items. }
@@ -2163,8 +2183,11 @@ begin
 
   WriteSpellChecked(ExternalItem.DetailedDescription);
 
+{$IFDEF BaseAuthors}
   WriteAuthors(HL + 1, ExternalItem.Authors);
   WriteDates(HL + 1, ExternalItem.Created, ExternalItem.LastMod);
+{$ELSE}
+{$ENDIF}
   WriteFooter;
   WriteAppInfo;
   WriteEndOfDocument;
