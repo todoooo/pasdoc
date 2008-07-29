@@ -2346,30 +2346,31 @@ type
   end;
 
 const
+//FPC doesn't allow to skip fields :-(
   LANGUAGE_ARRAY: array[TLanguageID] of TLanguageRecord = (
     (Table: @aEnglish; Name: 'Default=English'; Syntax: 'en'; CharSet: 'iso-8859-1'),
-    ( Name: 'Bosnian (Codepage 1250)'; Syntax: 'ba'; CharSet: 'windows-1250'),
-    ( Name: 'Brasilian'; Syntax: 'br'; CharSet: ''),
-    ( Name: 'Catalan'; Syntax: 'ct'; CharSet: ''),
-    ( Name: 'Chinese (Codepage 950)'; Syntax: 'big5'; CharSet: 'big5'),
-    ( Name: 'Chinese (Simple, gb2312)'; Syntax: 'gb2312'; CharSet: 'gb2312'),
-    ( Name: 'Danish'; Syntax: 'dk'; CharSet: 'iso-8859-15'),
-    ( Name: 'Dutch'; Syntax: 'nl'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'Bosnian (Codepage 1250)'; Syntax: 'ba'; CharSet: 'windows-1250'),
+    (Table: nil;  Name: 'Brasilian'; Syntax: 'br'; CharSet: ''),
+    (Table: nil;  Name: 'Catalan'; Syntax: 'ct'; CharSet: ''),
+    (Table: nil;  Name: 'Chinese (Codepage 950)'; Syntax: 'big5'; CharSet: 'big5'),
+    (Table: nil;  Name: 'Chinese (Simple, gb2312)'; Syntax: 'gb2312'; CharSet: 'gb2312'),
+    (Table: nil;  Name: 'Danish'; Syntax: 'dk'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'Dutch'; Syntax: 'nl'; CharSet: 'iso-8859-15'),
     (Table: @aEnglish; Name: 'English'; Syntax: 'en'; CharSet: 'iso-8859-1'),
-    ( Name: 'French'; Syntax: 'fr'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'French'; Syntax: 'fr'; CharSet: 'iso-8859-15'),
     (Table: @aGerman; Name: 'German'; Syntax: 'de'; CharSet: 'iso-8859-15'),
-    ( Name: 'Indonesian'; Syntax: 'id'; CharSet: ''),
-    ( Name: 'Italian'; Syntax: 'it'; CharSet: 'iso-8859-15'),
-    ( Name: 'Javanese'; Syntax: 'jv'; CharSet: ''),
-    ( Name: 'Polish (Codepage CP1250)'; Syntax: 'pl.cp1250'; CharSet: 'windows-1250'),
-    ( Name: 'Polish (Codepage ISO 8859-2)'; Syntax: 'pl.iso-8859-2'; CharSet: 'iso-8859-2'),
-    ( Name: 'Russian (Codepage 1251)'; Syntax: 'ru.1251'; CharSet: 'windows-1251'),
-    ( Name: 'Russian (Codepage 866)'; Syntax: 'ru.866'; CharSet: 'IBM866'),
-    ( Name: 'Russian (KOI-8)'; Syntax: 'ru.KOI8'; CharSet: 'koi8-r'),
-    ( Name: 'Slovak'; Syntax: 'sk'; CharSet: ''),
-    ( Name: 'Spanish'; Syntax: 'es'; CharSet: 'iso-8859-15'),
-    ( Name: 'Swedish'; Syntax: 'se'; CharSet: 'iso-8859-15'),
-    ( Name: 'Hungarian (Codepage 1250)'; Syntax: 'hu.1250'; CharSet: 'windows-1250')
+    (Table: nil;  Name: 'Indonesian'; Syntax: 'id'; CharSet: ''),
+    (Table: nil;  Name: 'Italian'; Syntax: 'it'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'Javanese'; Syntax: 'jv'; CharSet: ''),
+    (Table: nil;  Name: 'Polish (Codepage CP1250)'; Syntax: 'pl.cp1250'; CharSet: 'windows-1250'),
+    (Table: nil;  Name: 'Polish (Codepage ISO 8859-2)'; Syntax: 'pl.iso-8859-2'; CharSet: 'iso-8859-2'),
+    (Table: nil;  Name: 'Russian (Codepage 1251)'; Syntax: 'ru.1251'; CharSet: 'windows-1251'),
+    (Table: nil;  Name: 'Russian (Codepage 866)'; Syntax: 'ru.866'; CharSet: 'IBM866'),
+    (Table: nil;  Name: 'Russian (KOI-8)'; Syntax: 'ru.KOI8'; CharSet: 'koi8-r'),
+    (Table: nil;  Name: 'Slovak'; Syntax: 'sk'; CharSet: ''),
+    (Table: nil;  Name: 'Spanish'; Syntax: 'es'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'Swedish'; Syntax: 'se'; CharSet: 'iso-8859-15'),
+    (Table: nil;  Name: 'Hungarian (Codepage 1250)'; Syntax: 'hu.1250'; CharSet: 'windows-1250')
   );
 
 function TPasDocLanguages.GetTranslation(ATranslationID: TTranslationID): string;
