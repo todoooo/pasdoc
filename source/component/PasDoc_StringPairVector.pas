@@ -77,7 +77,7 @@ type
       give here as NameValueSepapator and ItemSeparator.
       So it's practically impossible to later convert such Text
       back to items and Names/Value pairs. }
-    function Text(const NameValueSeparator, ItemSeparator: string): string;
+    function Text(const ANameValueSeparator, AItemSeparator: string): string;
 
     { Finds a string pair with given Name.
       Returns -1 if not found. }
@@ -243,18 +243,18 @@ begin
 end;
 
 function TStringPairVector.Text(
-  const NameValueSeparator, ItemSeparator: string): string;
+  const ANameValueSeparator, AItemSeparator: string): string;
 var
   i: Integer;
   item: TStringPair;
 begin
   if Count > 0 then begin
     item :=  Items[0];
-    Result := item.Name + NameValueSeparator + item.Value;
+    Result := item.Name + ANameValueSeparator + item.Value;
     for i := 1 to Count - 1 do
       item := Items[i];
-      Result := Result + ItemSeparator +
-        item.Name + NameValueSeparator + item.Value;
+      Result := Result + AItemSeparator +
+        item.Name + ANameValueSeparator + item.Value;
   end;
 end;
 
