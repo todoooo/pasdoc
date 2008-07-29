@@ -919,7 +919,7 @@ type
 
   //here no object is involved, owned..., overload later?
     //procedure AddParam(const Name, Value: string);
-    function AddParam(const Name, Value: string): TPasItem;
+    function AddParam(const AName, AValue: string): TPasItem;
 
     { obsolete }
     property What: TMethodType read FWhat write FWhat;
@@ -2737,19 +2737,19 @@ begin
   Result := FParams;
 end;
 
-function TPasMethod.AddParam(const Name, Value: string): TPasItem;
+function TPasMethod.AddParam(const AName, AValue: string): TPasItem;
 begin
 (* To be called from tagmanager, where
   Value = detailed description (old convention)
 *)
-  TBaseItem(Result) := FindItem(Name);
+  TBaseItem(Result) := FindItem(AName);
   if Result = nil then begin
   //become another method?
-    Result := TPasItem.Create(self, KEY_VAR, Name);
+    Result := TPasItem.Create(self, KEY_VAR, AName);
     Result.Visibility := viPublic;  //in contrast to local variables!
     NeedParams.Add(Result);
   end;
-  Result.DetailedDescription := Value;
+  Result.DetailedDescription := AValue;
 end;
 
 procedure TPasMethod.StoreReturnsTag(
