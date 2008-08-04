@@ -599,6 +599,7 @@ begin
   FTranslation[trNoIdentifiers] := 'The units do not contain any identifiers.';
   FTranslation[trProgram] := 'Program';
   FTranslation[trLibrary] := 'Library';
+  FTranslation[trUses] := 'Uses';
 end;
 {$ELSE}
 
@@ -1804,6 +1805,7 @@ begin
   FTranslation[trCio] := ' лассы, интерфейсы и объекты';
   FTranslation[trClass] := ' ласс';
   FTranslation[trClasses] := ' лассы';
+  FTranslation[trClassHierarchy] := '»ерархи€ классов';
   FTranslation[trConstants] := ' онстанты';
   FTranslation[trCreated] := '—оздано';
   FTranslation[trDeclaration] := 'ќбъ€влени€';
@@ -1873,6 +1875,7 @@ begin
   FTranslation[trNoFunctions] := 'ћодули не содержат функции и процедуры.'; // DONE: translate
   FTranslation[trNoIdentifiers] := 'ћодули не содержат ни одного идентификатора.'; // DONE: translate
   FTranslation[trProgram] := 'ѕрограмма'; // DONE: translate
+  FTranslation[trUses] := '»спользуемые модули';
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -1884,6 +1887,7 @@ begin
   FTranslation[trCio] := 'КЂ†ббл, ®≠в•ад•©бл ® Ѓ°к•™вл';
   FTranslation[trClass] := 'КЂ†бб';
   FTranslation[trClasses] := 'КЂ†ббл';
+  FTranslation[trClassHierarchy] := 'И•а†ае®п ™Ђ†ббЃҐ';
   FTranslation[trConstants] := 'КЃ≠бв†≠вл';
   FTranslation[trCreated] := 'СЃІ§†≠Ѓ';
   FTranslation[trDeclaration] := 'О°кпҐЂ•≠®п';
@@ -1953,6 +1957,7 @@ begin
   FTranslation[trNoFunctions] := 'МЃ§гЂ® ≠• бЃ§•а¶†в дг≠™ж®® ® ѓаЃж•§гал.'; // DONE: translate
   FTranslation[trNoIdentifiers] := 'МЃ§гЂ® ≠• бЃ§•а¶†в ≠® Ѓ§≠Ѓ£Ѓ ®§•≠в®д®™†вЃа†.'; // DONE: translate
   FTranslation[trProgram] := 'ПаЃ£а†ђђ†'; // DONE: translate
+  FTranslation[trUses] := 'LЄ€юыєчЇхьvх ьюфЇыш';
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -1964,6 +1969,7 @@ begin
   FTranslation[trCio] := 'лћЅ””ў, …ќ‘≈“∆≈ ”ў … ѕ¬я≈Ћ‘ў';
   FTranslation[trClass] := 'лћЅ””';
   FTranslation[trClasses] := 'лћЅ””ў';
+  FTranslation[trClassHierarchy] := 'й≈“Ѕ“»…— ЋћЅ””ѕ„';
   FTranslation[trConstants] := 'лѕќ”‘Ѕќ‘ў';
   FTranslation[trCreated] := 'уѕЏƒЅќѕ';
   FTranslation[trDeclaration] := 'п¬я—„ћ≈ќ…—';
@@ -2033,6 +2039,7 @@ begin
   FTranslation[trNoFunctions] := 'нѕƒ’ћ… ќ≈ ”ѕƒ≈“÷Ѕ‘ ∆’ќЋ√…… … –“ѕ√≈ƒ’“ў.'; // DONE: translate
   FTranslation[trNoIdentifiers] := 'нѕƒ’ћ… ќ≈ ”ѕƒ≈“÷Ѕ‘ ќ… ѕƒќѕ«ѕ …ƒ≈ќ‘…∆…ЋЅ‘ѕ“Ѕ.'; // DONE: translate
   FTranslation[trProgram] := 'р“ѕ«“ЅЌЌЅ'; // DONE: translate
+  FTranslation[trUses] := 'хяќЌ Ё√—≈ЋЎ≈ ЋЌƒ— ’';
 end;
 
 { ---------------------------------------------------------------------------- }
