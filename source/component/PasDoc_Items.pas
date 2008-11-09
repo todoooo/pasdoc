@@ -296,12 +296,13 @@ type
 
     property Count: integer read GetCount;
     property Items[index: integer]: TDescriptionItem read ItemAt; //default;
-  {$IFDEF old}
-    property Description: string read GetRawDescription; //Value;
-  {$ELSE}
     property RawDescription: string read GetRawDescription;
     property Caption: string read Name;
-  {$ENDIF}
+    //get short description for Tipue
+    function  GetTipueShort: string; virtual;
+    //get long description for Tipue
+    function  GetTipueLong: string; virtual;
+
   //Set by @@exclude, to exclude this item from the generated documentation.
     property ToBeExcluded: boolean read FExclude;
   end;
@@ -386,11 +387,8 @@ type
   //currently needed for external items
     procedure SetDetailedDescription(const s: string);
   protected
-  {$IFDEF old}
-  {$ELSE}
     FFullLink: string;
     FOutputFileName: string;
-  {$ENDIF}
     FDisallowAutoLink: boolean;
     function AutoLinkAllowed: boolean;
   private
@@ -553,13 +551,8 @@ type
       The description should be separated into paragraphs,
       in the Description list.
     }
-  {$IFDEF old}
-    property DetailedDescription: string
-      read FDetailedDescription write FDetailedDescription;
-  {$ELSE}
     property DetailedDescription: string
       read GetDetailedDescription  write SetDetailedDescription;
-  {$ENDIF}
 
     property ShortDescription: string read GetShortDescription;
   {$IFDEF paragraphs}
@@ -578,11 +571,7 @@ type
     property RawDescription: string
       read GetRawDescription write WriteRawDescription;
     //for use by parser, only!
-  {$IFDEF old}
-    property Descriptions: TRawDescriptionInfo read FRawDescriptionInfo;
-  {$ELSE}
     property RawDescriptions: TRawDescriptionInfo read FRawDescriptionInfo;
-  {$ENDIF}
     //get first description token. Nil if no description found. Usage???
     property FirstDescription: TToken read GetFirstDescription;
 
@@ -637,6 +626,11 @@ type
     property LastMod: TDescriptionItem index ord(trLastModified) read GetItemFPC;
 
     property SeeAlso: TDescriptionItem index ord(trSeeAlso) read GetItemFPC;
+
+    //get short description for Tipue
+    function  GetTipueShort: string; override;
+    //get long description for Tipue
+    function  GetTipueLong: string; override;
   end;
 
 
@@ -818,7 +812,7 @@ type
     function BasePath: string; override;
     //return output file to use.
     function  GetOutputFileName: string;
-end;
+  end;
 
   TPasItemClass = class of TPasItem;
 
@@ -923,20 +917,9 @@ end;
 
   TPasScope = class(TPasItem)
   protected
-  {$IFDEF old}
-    FOutputFileName: string;
-  {$ELSE}
-    //allow for every PasItem to reside in it's own file.
-  {$ENDIF}
   //List of all members, for internal use only.
   //Possibly exported as Values (enum...)?
     FMembers: TPasItems;
-  {$IFDEF old}
-  //Ancestors or used units. The list is owned by this class.
-    FHeritage: TDescriptionItem;
-  {$ELSE}
-    //in TPasItem
-  {$ENDIF}
   (* List of special member lists, for internal use only.
     This list contains sublists of selected members.
     The sublists must NOT own the members.
@@ -1063,10 +1046,6 @@ end;
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string); override;
     procedure BuildLinks(AllUnits: TPasUnits; TheGenerator: TLinkGenerator); override;
-  {$IFDEF old}
-    procedure BuildMemberLists; override;
-  {$ELSE}
-  {$ENDIF}
 
     procedure Sort(const SortSettings: TSortSettings); override;
 
@@ -1085,12 +1064,6 @@ end;
     FReturns, //string;
     FRaises,  //: TStringPairVector;
     FParams: TDescriptionItem;
-  {$IFDEF old}
-    FWhat: TMethodType;
-    procedure Serialize(const ADestination: TStream); override;
-    procedure Deserialize(const ASource: TStream); override;
-  {$ELSE}
-  {$ENDIF}
     procedure StoreRaisesTag(ThisTag: TTag; var ThisTagData: TObject;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
@@ -1101,38 +1074,21 @@ end;
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
   public
-  {$IFDEF old}
-    constructor Create(AOwner: TPasScope; AKind: TTokenType;
-      const AName: string); override;
-  {$ELSE}
-  {$ENDIF}
-
     { In addition to inherited, this also registers @link(TTag)s
       that init @link(Params), @link(Returns) and @link(Raises)
       and remove according tags from description. }
     procedure RegisterTags(TagManager: TTagManager); override;
 
-  {$IFDEF old}
-    procedure BuildMemberLists; override;
-  (* Build section list. Sort!
-  *)
-    procedure BuildSections; override;
-  {$ELSE}
-    //-obsolete, no members, no member lists!
-  {$ENDIF}
-
     { obsolete }
-  {$IFDEF old}
-    property What: TMethodType read FWhat write FWhat;
-  {$ELSE}
-    property What: TTokenType read FKind;  // write FWhat;
-  {$ENDIF}
+    property What: TTokenType read FKind;  //- write FWhat;
 
     { Note that Params, Returns, Raises are already in the form processed by
       @link(TTagManager.Execute), i.e. with links resolved,
       html characters escaped etc. So @italic(don't) convert them (e.g. before
       writing to the final docs) once again (by some ExpandDescription or
-      ConvertString or anything like that). }
+      ConvertString or anything like that).
+
+      This may change when parameters are recognized by the parser. }
     { }
 
     { Name of each item is the name of parameter (without any surrounding
@@ -1140,8 +1096,7 @@ end;
       (in already-expanded form). }
     property Params: TDescriptionItem read FParams;
 
-    //Result could be added as a parameter
-    //property Returns: string read FReturns;
+    //Result could be added as a Parameter
     property Returns: TDescriptionItem read FReturns;
 
     { Name of each item is the name of exception class (without any surrounding
@@ -1155,6 +1110,9 @@ end;
       Very obsolete! (use FList instead)
     }
     function HasMethodOptionalInfo: boolean;
+
+    //get long description for Tipue
+    function  GetTipueLong: string; override;
   end;
 
 (* Properties should have a Uses (like) list, for read/write attributes.
@@ -1346,10 +1304,6 @@ end;
   TExternalItem = class(TBaseItem)
   private
     FSourceFilename: string;
-  {$IFDEF old}
-    FOutputFileName: string;
-  {$ELSE}
-  {$ENDIF}
     FShortTitle: string;
     // See @link(Anchors).
     FAnchors: TBaseItems;
@@ -1393,7 +1347,12 @@ end;
       read GetDetailedDescription write SetDetailedDescription;
 
     function BasePath: string; override;
-  end;
+
+    //get short description for Tipue
+    function  GetTipueShort: string; override;
+    //get long description for Tipue
+    function  GetTipueLong: string; override;
+end;
 
   TAnchorItem = class(TBaseItem)
   private
@@ -1978,6 +1937,21 @@ begin
     FRawDescription := AValue;
 end;
 
+function TBaseItem.GetTipueShort: string;
+begin
+  Result := AbstractDescription;
+end;
+
+function TBaseItem.GetTipueLong: string;
+var
+  item: TDescriptionItem;
+begin
+  Result := DetailedDescription;
+  item := Authors;
+  if not IsEmpty(item) then
+    Result := Result + ' ' + item.Text;
+end;
+
 function TBaseItem.BasePath: string;
 begin
   Result := IncludeTrailingPathDelimiter(GetCurrentDir);
@@ -2092,11 +2066,6 @@ begin
   inherited RegisterTags(TagManager);
   TTag.Create(TagManager, 'deprecated',
     nil, {$ifdef FPC}@{$endif} HandleDeprecatedTag, []);
-{$IFDEF old}
-  TTag.Create(TagManager, 'exclude',
-    nil, {$ifdef FPC}@{$endif} HandleExcludeTag, []);
-{$ELSE}
-{$ENDIF}
   TTag.Create(TagManager, 'group',
     nil, {$IFDEF FPC}@{$ENDIF} GroupTag,
     [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault, toAllowNormalTextInside, toFirstWordVerbatim]);
@@ -2435,55 +2404,6 @@ begin
   end;
   //inherited BuildLinks(AllUnits, TheGenerator); //nop!?
 end;
-
-{$IFDEF old}
-procedure TPasEnum.BuildMemberLists;
-{$IFDEF old}
-var
-  i: integer;
-  item: TPasItem;
-{$ELSE}
-var
-  lst: TDescriptionItem;
-{$ENDIF}
-begin
-(* Build overview from Members=Values.
-  The default member list becomes a copy of Members, for later grouping.
-  Called from BuildSections - propagate?
-  MemberLists are required by ExpandDescription -> AddDescription
-*)
-{$IFDEF old}
-  case FMemberLists.Count of
-  0: exit;  //no members - should never happen
-  1:  //simple list of Values
-    FOverview := AddListDelegate(trValues, Members);
-  else
-    FOverview := AddListDelegate(FMemberLists);  //multiple lists
-  end;
-{$ELSE}
-  //inherited BuildMemberLists;
-(* Groups have not been specied yet!
-  FMemberLists has been created in TPasScope constructor.
-  We add the default member list.
-*)
-  FMemberLists.FTID := trValues; //assume: top level ignored!
-  lst := FMemberLists.AddNew(trValues, dkPasItems); //members are not owned
-{$IFDEF old}
-  for i := 0 to Members.Count - 1 do begin
-    item := Members.PasItemAt[i];
-    lst.Add(item);
-    item.BuildSections;
-  end;
-{$ELSE}
-  lst.FList.Assign(Members);
-  inherited BuildMemberLists;
-  //FOverview.FTID := trValues; //if set to trOverview
-{$ENDIF}
-{$ENDIF}
-end;
-{$ELSE}
-  //nothing to do here
-{$ENDIF}
 
 procedure TPasEnum.StoreValueTag(
   ThisTag: TTag; var ThisTagData: TObject;
@@ -3001,12 +2921,6 @@ procedure TPasCio.BuildSections;
 var
   desc, anc: TDescriptionItem;
 begin
-{$IFDEF old}
-  desc := AddNew(trUnit, dkDelegate, MyUnit.Name); //description???
-  desc.PasItem := MyOwner;
-{$ELSE}
-  //automatic by generator, for every item in a separate file
-{$ENDIF}
 //hierarchy
   if not IsEmpty(Ancestors) then begin
     desc := AddNew(trHierarchy, dkItemList);
@@ -3027,13 +2941,6 @@ begin
       //why not: desc.Add(self)?
   end;
   inherited BuildSections; //build overview
-{$IFDEF old}
-//sort
-  SortByID([trUnit, trDeclaration, trDescription, trHierarchy,
-    trSeeAlso, //???
-    trOverview, trDescriptions, trAuthors, trCreated, trLastModified]);
-{$ELSE}
-{$ENDIF}
 end;
 
 { TPasUnit ------------------------------------------------------------------- }
@@ -3173,15 +3080,9 @@ begin
   //if not IsEmpty(UsesUnits) then AddListDelegate(UsesUnits);
 //build general sections and recurse.
   inherited BuildSections;
-{$IFDEF old}
-//sort all lists
-  SortByID([trDeclaration, trDescription, trSeeAlso, trUses,
-    trOverview, trDescriptions,
-    trAuthors, trCreated, trLastModified]);
-{$ELSE}
-{$ENDIF}
 //special sort of Unit member list.
-  FMemberLists.SortByID([trClasses, trFunctionsAndProcedures, trTypes,
+//could extend DefaultSectionSortOrder accordingly.
+  FMemberLists.SortByID([trCio, trFunctionsAndProcedures, trTypes,
     trConstants, trVariables]);
 end;
 
@@ -3268,48 +3169,6 @@ end;
 
 { TPasMethod ----------------------------------------------------------------- }
 
-{$IFDEF old}
-constructor TPasMethod.Create(AOwner: TPasScope; AKind: TTokenType;
-  const AName: string);
-begin
-  inherited;
-//init what - very obsolete!
-  case AKind of
-  KEY_CONSTRUCTOR: FWhat := METHOD_CONSTRUCTOR;
-  KEY_DESTRUCTOR: FWhat := METHOD_DESTRUCTOR;
-  KEY_FUNCTION:   FWhat := METHOD_FUNCTION;
-  KEY_PROCEDURE:  FWhat := METHOD_PROCEDURE;
-  else            FWhat := METHOD_OPERATOR;
-  end;
-end;
-{$ELSE}
-{$ENDIF}
-
-{$IFDEF old}
-procedure TPasMethod.BuildMemberLists;
-begin
-  FMemberLists.FTID := trSubroutine;
-  inherited BuildMemberLists; //filter, create overview
-  if FOverview = nil then
-    exit;
-  //FOverview.FTID := trSubroutine; //unless done before
-//todo: should sort Overview!?
-  FMemberLists.SortByID([trParameters, trReturns, trExceptionsRaised]);
-end;
-
-procedure TPasMethod.BuildSections;
-begin
-  inherited BuildSections;
-{$IFDEF old}
-//sort
-  SortByID([trDeclaration, trDescription, trOverview, trSeeAlso]);
-{$ELSE}
-  //SeeAlso should be sorted last!?
-{$ENDIF}
-end;
-{$ELSE}
-{$ENDIF}
-
 { TODO for StoreRaisesTag and StoreParamTag:
   splitting TagParameter using ExtractFirstWord should be done
   inside TTagManager.Execute, working with raw text, instead
@@ -3332,19 +3191,10 @@ procedure TPasMethod.StoreRaisesTag(
   const TagParameter: string; var ReplaceStr: string);
 var
   item: TDescriptionItem;
-{$IFDEF old}
-  o: TDescriptionItem;
-{$ELSE}
-{$ENDIF}
 begin
   if TagParameter = '' then exit;
   if FRaises = nil then begin
-{$IFDEF old}
-    o := NeedOverview;
-    FRaises := o.AddNew(trExceptionsRaised, dkItemList);
-{$ELSE}
     FRaises := AddNew(trExceptionsRaised, dkItemList);
-{$ENDIF}
   end;
   item := FRaises.AddExtractFirstWord(trException, TagParameter);
 //AddExtractFirstWord returns Nil if no name could be extracted
@@ -3361,19 +3211,10 @@ procedure TPasMethod.StoreParamTag(
   const TagParameter: string; var ReplaceStr: string);
 var
   param: TDescriptionItem;
-{$IFDEF old}
-  o: TDescriptionItem;
-{$ELSE}
-{$ENDIF}
 begin
   if TagParameter = '' then exit;
   if FParams = nil then begin
-  {$IFDEF old}
-    o := NeedOverview;
-    FParams := o.AddNew(trParameters, dkItemList);
-  {$ELSE}
     FParams := AddNew(trParameters, dkItemList);
-  {$ENDIF}
   end;
 //add as NoTrans, to force unique Name
   param := FParams.AddExtractFirstWord(trNoTrans, TagParameter);
@@ -3388,21 +3229,11 @@ procedure TPasMethod.StoreReturnsTag(
   ThisTag: TTag; var ThisTagData: TObject;
   EnclosingTag: TTag; var EnclosingTagData: TObject;
   const TagParameter: string; var ReplaceStr: string);
-{$IFDEF old}
-var
-  o: TDescriptionItem;
-{$ELSE}
-{$ENDIF}
 begin
   if TagParameter = '' then exit;
 //Name could hold the function type!
   if FReturns = nil then begin
-  {$IFDEF old}
-    o := NeedOverview;
-    FReturns := o.AddString(trReturns, TagParameter);
-  {$ELSE}
     FReturns := AddString(trReturns, TagParameter);
-  {$ENDIF}
   end else begin
     ThisTag.TagManager.DoMessage(1, pmtWarning, 'override Returns %s by %s',
       [FReturns.Name, TagParameter]);
@@ -3411,35 +3242,37 @@ begin
   ReplaceStr := '';
 end;
 
+function TPasMethod.GetTipueLong: string;
+
+  procedure Apnd(const s: string);
+  begin
+    if s <> '' then begin
+      if Result = '' then
+        Result := s
+      else
+        Result := Result + ' ' + s;
+    end;
+  end;
+
+var
+  item: TDescriptionItem;
+begin
+  Result := inherited GetTipueLong; //long description
+  item := Returns;
+  if item <> nil then
+    Apnd(item.Text);
+  item := Params;
+  if not IsEmpty(item) then
+    Apnd(item.Text);
+  item := Raises;
+  if not IsEmpty(item) then
+    Apnd(item.Text);
+end;
+
 function TPasMethod.HasMethodOptionalInfo: boolean;
 begin
   Result := not IsEmpty(FList);
 end;
-
-{$IFDEF old}
-procedure TPasMethod.Deserialize(const ASource: TStream);
-begin
-  inherited;
-  ASource.Read(FWhat, SizeOf(FWhat));
-
-  { No need to serialize, because it's not generated by parser:
-  Params.LoadFromBinaryStream(ASource);
-  FReturns := LoadStringFromStream(ASource);
-  FRaises.LoadFromBinaryStream(ASource); }
-end;
-
-procedure TPasMethod.Serialize(const ADestination: TStream);
-begin
-  inherited;
-  ADestination.Write(FWhat, SizeOf(FWhat));
-
-  { No need to serialize, because it's not generated by parser:
-  Params.SaveToBinaryStream(ADestination);
-  SaveStringToStream(FReturns, ADestination);
-  FRaises.SaveToBinaryStream(ADestination); }
-end;
-{$ELSE}
-{$ENDIF}
 
 procedure TPasMethod.RegisterTags(TagManager: TTagManager);
 begin
@@ -3582,6 +3415,17 @@ end;
 function TExternalItem.BasePath: string;
 begin
   Result := ExtractFilePath(ExpandFileName(SourceFileName));
+end;
+
+function TExternalItem.GetTipueLong: string;
+begin
+  Result := inherited GetTipueLong;
+  Result := Result + ' ' + self.Title;
+end;
+
+function TExternalItem.GetTipueShort: string;
+begin
+  Result := ShortTitle;
 end;
 
 { global things ------------------------------------------------------------ }
@@ -3971,35 +3815,6 @@ begin
   TSerializable.SaveIntegerToStream(ord(kind), Stream);
   TSerializable.SaveStringToStream(Name, Stream);
   TSerializable.SaveStringToStream(Value, Stream);
-{$IFDEF old}
-  case self.kind of
-  dkText:
-    TSerializable.SaveStringToStream(Description, Stream);
-  dkNameDesc:
-    begin
-      TSerializable.SaveStringToStream(Name, Stream);
-      TSerializable.SaveStringToStream(Value, Stream);
-    end;
-  dkStrings:
-    begin
-      sl := self.GetObject as TStrings; //maybe Nil!?
-      TSerializable.SaveIntegerToStream(Count, Stream);
-      for i := 0 to Count - 1 do
-        TSerializable.SaveStringToStream(sl[i], Stream);
-    end;
-  //dkPasItem: - nothing stored!
-  dkItemList:
-    begin
-      //il := self.GetObject as TObjectVector; //maybe Nil!?
-      TSerializable.SaveIntegerToStream(Count, Stream);
-      for i := 0 to Count - 1 do begin
-        item := ItemAt(i);
-        item.SaveToBinaryStream(Stream);
-      end;
-    end;
-  end;
-{$ELSE}
-{$ENDIF}
 end;
 {$ELSE}
 {$ENDIF}
@@ -4232,9 +4047,13 @@ var
   i: Integer;
 begin
 (* Build string from Name and Value.
-  Append from list only if ItemSeparator is not empty
+  Append from list only if ItemSeparator is not empty.
+
+  Prevent against self=nil (from Tipue).
 *)
-  if (ItemSeparator <> '') and (Count > 0) then begin
+  if Self = nil then
+    Result := ''
+  else if (ItemSeparator <> '') and (Count > 0) then begin
   //list version, ignore Self.Name and .Value
     Result := Items[0].Text(NameValueSeparator, ItemSeparator);
     for i := 1 to Count - 1 do
@@ -4247,6 +4066,22 @@ begin
     else
       Result := Name + NameValueSeparator + Value;
   end;
+end;
+
+function TDescriptionItem.GetTipueShort: string;
+begin
+  Result := '';
+end;
+
+function TDescriptionItem.GetTipueLong: string;
+begin
+  Result := '';
+end;
+
+  //replaced by Caption=Name
+function TDescriptionItem.GetRawDescription: string;
+begin
+  Result := '';
 end;
 
 function TDescriptionItem.IndexOf(const AName: string): integer;
@@ -4287,19 +4122,6 @@ begin
   if (FList <> nil) and (FList.SortKind in SortSettings) then
     FList.Sort({$IFDEF fpc}@{$ENDIF} CompareDescriptionItemsByName);
 end;
-
-{$IFDEF old}
-function TDescriptionItem.GetRawDescription: string;
-begin
-  Result := Value;
-end;
-{$ELSE}
-  //replaced by Caption=Name
-function TDescriptionItem.GetRawDescription: string;
-begin
-  Result := '';
-end;
-{$ENDIF}
 
 procedure TDescriptionItem.SortByID(
   const weights: array of TTranslationID);

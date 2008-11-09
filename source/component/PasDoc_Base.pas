@@ -203,13 +203,16 @@ type
     { All TPasUnit objects which have not been @@excluded from the documentation. }
     property DocUnits: TPasUnits read Options.DocUnits;
   { Item names for which no auto links are created. Loaded from file, if ever used.}
-  //--auto-link-exclude: Fine-tune the --auto-link behavior: Prevent automatic linking for the specified identifiers.
+  { Even when --auto-link is on, never automatically create links to identifiers
+    in the specified file. The file should contain one identifier on every line}
+  //cmd: --auto-link-exclude <file>
     property AutoLinkExclude: TStringList read Options.AutoLinkExclude;
     // After @link(Execute) has been called, @name holds the conclusion.
     property Conclusion: TExternalItem read Options.Conclusion;
     // After @link(Execute) has been called, @name holds the introduction.
     property Introduction: TExternalItem read Options.Introduction;
   //File usable for "open" command, to display the created documentation.
+  //Set by the generator.
     property MasterFile: string read Options.MasterFile;
   private
     { All units used in the document preparation step. }
@@ -351,7 +354,8 @@ type
   {Include / exclude class Members by visiblity.
   } //cmd: -M, --visible-members
     property ShowVisibilities: TVisibilities read Options.ShowVisibilities write Options.ShowVisibilities;
-  //Use single-char markers. "-" ignore, "<" back rem, ">" fwd rem (default)
+  {Use single-char markers. "-" ignore, "<" back rem, ">" fwd rem (default)
+  } //cmd: --single-char-markers
     property SingleCharMarkers: boolean read Options.SingleCharMarkers write Options.SingleCharMarkers;
 
   { Specifies what groups of items are sorted.
@@ -395,8 +399,9 @@ type
   {Include file as header.
   } //cmd: -H, --header
     property Header: string read Options.Header write Options.Header;
-  {Put every item into its own file (online help format).}
-    property ItemFiles: boolean read Options.ItemFiles;
+  {Put every item into its own file (Delphi online help format).
+  } //cmd: --separate-files
+    property ItemFiles: boolean read Options.ItemFiles write Options.ItemFiles;
   {Cause the html generator to create numeric filenames.
     Useful with ItemFiles, to prevent name clashes from overloaded subroutines.
   } //cmd: –numericfilenames

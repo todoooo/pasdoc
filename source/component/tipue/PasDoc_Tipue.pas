@@ -83,24 +83,27 @@ procedure TipueAddFiles(Units: TPasUnits;
       begin
         Result := StringReplaceChars(S, ReplacementArray);
       end;
-      
+
     var
       ShortDescription, LongDescription: string;
-      EnumMember: TPasItem;
+      //EnumMember: TPasItem;
+      scope: TPasScope absolute item;
       i: Integer;
     begin
+    {$IFDEF old}
       { calculate ShortDescription }
       if Item is TPasItem then
-        ShortDescription := 
-          EscapeIndexEntry(TPasItem(Item).AbstractDescription) else
-      if Item is TExternalItem then
-        ShortDescription := 
-          EscapeIndexEntry(TExternalItem(Item).ShortTitle) else
+        ShortDescription :=
+          EscapeIndexEntry(TPasItem(Item).AbstractDescription)
+      else if Item is TExternalItem then
+        ShortDescription :=
+          EscapeIndexEntry(TExternalItem(Item).ShortTitle)
+      else
         ShortDescription := '';
-      
+
       { calculate LongDescription.
         Note that LongDescription will not be shown to user anywhere
-        (it will only be searched by tipue), so we don't care how 
+        (it will only be searched by tipue), so we don't care how
         things look here. We just glue some properties of Item together. }
       LongDescription := EscapeIndexEntry(Item.DetailedDescription) +
         ' ' + EscapeIndexEntry(Item.Authors.Text('', ''));
@@ -108,29 +111,41 @@ procedure TipueAddFiles(Units: TPasUnits;
         LongDescription := LongDescription +
           ' ' + EscapeIndexEntry(TPasMethod(Item).Params.Text(' ', ' ')) +
           ' ' + EscapeIndexEntry(TPasMethod(Item).Returns.Value) +
-          ' ' + EscapeIndexEntry(TPasMethod(Item).Raises.Text(' ', ' '));
-      if Item is TPasEnum then
-      begin
-        for i := 0 to TPasEnum(Item).Members.Count - 1 do
-        begin
+          ' ' + EscapeIndexEntry(TPasMethod(Item).Raises.Text(' ', ' '))
+      else if Item is TPasEnum then begin
+        for i := 0 to TPasEnum(Item).Members.Count - 1 do begin
           EnumMember := TPasEnum(Item).Members.PasItemAt[i];
-          LongDescription := LongDescription + 
+          LongDescription := LongDescription +
             ' ' + EscapeIndexEntry(EnumMember.Name) +
             ' ' + EscapeIndexEntry(EnumMember.AbstractDescription) +
             ' ' + EscapeIndexEntry(EnumMember.DetailedDescription) +
             ' ' + EscapeIndexEntry(EnumMember.Authors.Text);
         end;
-      end;
-      if Item is TExternalItem then
-      begin
+      end else if Item is TExternalItem then begin
         LongDescription := LongDescription +
           ' ' + EscapeIndexEntry(TExternalItem(Item).Title);
       end;
-      
-      WriteIndexData(Item.QualifiedName, Item.FullLink, 
+    {$ELSE}
+      ShortDescription := EscapeIndexEntry(Item.GetTipueShort);
+      LongDescription := EscapeIndexEntry(Item.GetTipueLong);
+    {$ENDIF}
+
+      WriteIndexData(Item.QualifiedName, Item.FullLink,
         ShortDescription, LongDescription);
+
+    {$IFDEF old}
+    {$ELSE}
+    //write item members index
+      if item is TPasScope then begin
+      //applies to units, cios, enums, NOT to methods
+        for i := 0 to scope.Members.Count - 1 do begin
+          WriteItemIndexData(scope.Members.PasItemAt[i]);
+        end;
+      end;
+    {$ENDIF}
     end;
-    
+
+  {$IFDEF old}
     procedure WriteItemsIndexData(Items: TPasItems);
     var
       i: Integer;
@@ -138,14 +153,13 @@ procedure TipueAddFiles(Units: TPasUnits;
       for i := 0 to Items.Count - 1 do
         WriteItemIndexData(Items.PasItemAt[i]);
     end;
-    
+
     procedure WriteCIOsIndexData(CIOs: TPasItems);
-    var 
+    var
       i: Integer;
       CIO: TPasCIO;
     begin
-      for i := 0 to CIOs.Count - 1 do
-      begin
+      for i := 0 to CIOs.Count - 1 do begin
         CIO := CIOs[i] as TPasCIO;
         WriteItemIndexData(CIO);
         WriteItemsIndexData(CIO.Fields);
@@ -153,9 +167,9 @@ procedure TipueAddFiles(Units: TPasUnits;
         WriteItemsIndexData(CIO.Properties);
       end;
     end;
-    
+
     procedure WriteUnitsIndexData(Units: TPasUnits);
-    var 
+    var
       i: Integer;
       U: TPasUnit;
     begin
@@ -170,27 +184,38 @@ procedure TipueAddFiles(Units: TPasUnits;
         WriteItemsIndexData(U.Variables);
       end;
     end;
-    
+  {$ELSE}
+
+    procedure WriteUnitsIndexData(Units: TPasUnits);
+    var
+      i: Integer;
+      U: TPasUnit;
+    begin
+      for i := 0 to Units.Count - 1 do begin
+        U := Units[i] as TPasUnit;
+        WriteItemIndexData(U);
+      end;
+    end;
+  {$ENDIF}
+
   begin
     Assign(OutFile, FileName);
     Rewrite(OutFile);
     try
       Writeln(OutFile, 'var s = new Array()');
       Writeln(OutFile);
-      
+
       IndexDataNum := 0;
-      
+
       if Introduction <> nil then
-      begin
         WriteItemIndexData(Introduction);
-      end;
       if Conclusion <> nil then
-      begin
         WriteItemIndexData(Conclusion);
-      end;
 
       WriteUnitsIndexData(Units);
-    finally CloseFile(OutFile) end;
+    finally
+      CloseFile(OutFile)
+    end;
   end;
 
 const
@@ -201,7 +226,7 @@ const
 begin
   StringToFile(OutputPath + 'tip_search.js', TipSearchScript);
   StringToFile(OutputPath + 'tip_form.js', TipFormScript);
-  StringToFile(OutputPath + '_tipue_results.html', 
+  StringToFile(OutputPath + '_tipue_results.html',
     StringReplace(TipResultsPage, 
       '###-PASDOC-INSERT-HEAD-###', MetaContentType, []));
   DataToFile(OutputPath + 'tipue_b1.png', TipLogoImage);

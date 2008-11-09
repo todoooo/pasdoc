@@ -68,8 +68,9 @@ type
     OptionName: TStringOption;  //<ProjectName
     OptionNoMacro: TBoolOption; //<HandleMacros
     OptionNumericFilenames: TBoolOption;
+    OptionSeparateFiles: TBoolOption;
     OptionOutputPath: TStringOption;  //<DestinationDirectory
-    //SingleCharMarkers?
+    OptionSingleCharMarkers: TBoolOption; //<SingleCharMarkers
     OptionSort: TSetOption; //<SortSettings
     OptionSourceList: TStringOptionList;  //<SourceFileNames using AddSourceFileNamesFromFile
     OptionSpellCheckIgnoreWords: TStringOption; //<SpellCheckIgnoreWords
@@ -199,6 +200,14 @@ begin
   OptionNumericFilenames := TBoolOption.Create(#0, 'numericfilenames');
   OptionNumericFilenames.Explanation := 'Causes the html generator to create numeric filenames';
   AddOption(OptionNumericFilenames);
+
+  OptionSingleCharMarkers := TBoolOption.Create(#0, 'single-char-markers');
+  OptionSingleCharMarkers.Explanation := 'Use single character comment markers: < > -';
+  AddOption(OptionSingleCharMarkers);
+
+  OptionSeparateFiles := TBoolOption.Create(#0, 'separate-files');
+  OptionSeparateFiles.Explanation := 'Causes the html generator to put every item into an distinct file';
+  AddOption(OptionSeparateFiles);
 
   OptionVisibleMembers := TSetOption.Create('M','visible-members');
   OptionVisibleMembers.Explanation := 'Include / Exclude class Members by visiblity';
@@ -342,10 +351,12 @@ procedure TPasdocOptions.InterpretCommandline(PasDoc: TPasDoc);
       Generator.Header := FileToString(OptionHeader.Value);
 
     { If external CSS file was specified }
+    { TODO : Change CSS option from contents into filename }
     if OptionCSS.WasSpecified then
       Generator.CSS := FileToString(OptionCSS.Value);
 
     Generator.NumericFilenames := OptionNumericFilenames.TurnedOn;
+    Generator.ItemFiles := OptionSeparateFiles.TurnedOn;
 
     Generator.UseTipueSearch := OptionUseTipueSearch.TurnedOn;
 
@@ -482,6 +493,7 @@ begin
   if OptionStarOnly.TurnedOn then
     PasDoc.StarStyleOnly := true;
   PasDoc.MarkerOptional := OptionMarkerOptional.TurnedOn;
+  PasDoc.SingleCharMarkers := OptionSingleCharMarkers.TurnedOn;
 
   PasDoc.IgnoreLeading := OptionIgnoreLeading.Value;
 
