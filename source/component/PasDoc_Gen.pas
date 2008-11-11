@@ -1783,8 +1783,9 @@ procedure TDocGenerator.ExpandDescriptions;
     WantFirstSentenceEnd: boolean;
     out FirstSentenceEnd: Integer): string; overload;
   begin
-    // make it available to the handlers
+    // make it available to the tag manager and handlers
     FCurrentItem := Item;
+    InitTags(Item);
 
     FTagManager.PreExecute := PreExpand;
 
@@ -1818,7 +1819,7 @@ procedure TDocGenerator.ExpandDescriptions;
       Item.DetailedDescription (because whitespaces,
       including leading and trailing, may be important for final doc format;
       moreover, you would break the value of FirstSentenceEnd by such thing). }
-    InitTags(Item);
+    //InitTags(Item);
     Expanded := ExpandDescription(PreExpand,
       Item, Trim(Item.RawDescription), true, FirstSentenceEnd);
     if not PreExpand then
@@ -1835,6 +1836,7 @@ procedure TDocGenerator.ExpandDescriptions;
   var
     Expanded: string;
   begin
+    //InitTags(Item);
     Expanded := ExpandDescription(PreExpand, Item, Trim(Item.RawDescription));
     if not PreExpand then
       Item.DetailedDescription := Expanded;
@@ -3183,12 +3185,13 @@ begin
   DoMessage(2, pmtInformation, 'Writing Docs for %s, "%s"',
     [Language.Translation[Id], ExternalItem.Name]);
 
-  If ExternalItem.Title = '' then begin
-    ExternalItem.Title := Language.Translation[Id];
+//keep ShortTitle for overview
+  If ExternalItem.ShortTitle = '' then begin
+    ExternalItem.ShortTitle := Language.Translation[Id];
   end;
 
-  If ExternalItem.ShortTitle = '' then begin
-    ExternalItem.ShortTitle := ExternalItem.Title;
+  If ExternalItem.Title = '' then begin
+    ExternalItem.Title := ExternalItem.ShortTitle;
   end;
 
   WriteExternalCore(ExternalItem, Id);

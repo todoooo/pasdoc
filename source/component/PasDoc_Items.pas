@@ -19,7 +19,7 @@ unit PasDoc_Items;
 {-$DEFINE DetailedProps}
 {-$DEFINE paragraphs}
 {$DEFINE groups}
-{-$DEFINE DbgFree} //-debug destruction?
+{$DEFINE DbgFree} //-debug destruction?
 
 interface
 
@@ -1316,12 +1316,10 @@ type
       EnclosingTag: TTag; var EnclosingTagData: TObject;
       const TagParameter: string; var ReplaceStr: string);
   public
-  {$IFDEF old}
-  //why should FAnchors not be created and destroyed?
-    Constructor Create; override;
+    constructor Create(const AName: string = ''; const AValue: string = '';
+      tid: TTranslationID = trNoTrans; AListKind: eDescriptionKind = dkNoList); override;
     destructor Destroy; override;
-  {$ELSE}
-  {$ENDIF}
+
     procedure RegisterTags(TagManager: TTagManager); override;
     { name of documentation output file }
     property OutputFileName: string read FOutputFileName write SetOutputFileName;
@@ -3346,8 +3344,8 @@ begin
       [Name, AnchorName]);
 end;
 
-{$IFDEF old}
-constructor TExternalItem.Create;
+constructor TExternalItem.Create(const AName: string = ''; const AValue: string = '';
+      tid: TTranslationID = trNoTrans; AListKind: eDescriptionKind = dkNoList); 
 begin
   inherited;
   FAnchors := TBaseItems.Create(true);
@@ -3358,8 +3356,6 @@ begin
   FAnchors.Free;
   inherited;
 end;
-{$ELSE}
-{$ENDIF}
 
 function TExternalItem.FindItem(const ItemName: string): TBaseItem;
 begin

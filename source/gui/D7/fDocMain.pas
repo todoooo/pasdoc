@@ -164,6 +164,7 @@ type
     MisspelledWords: TStringList;
     SelItem: TDescriptionItem;  // TBaseItem;
     SelToken: TToken;
+    //MsgLvl: integer;
     function  _AddDirs(const dir, fn: string;
       const fd: TWIN32FindData; isDir: boolean): eFileEnum;
     function  _AddFiles(const dir, fn: string;
@@ -365,6 +366,8 @@ const
 var
   MisspelledWord: string;
 begin
+  if AVerbosity > cardinal(self.swLevel.Position) then
+    exit;
   lbLog.Items.Add(AMessage);
   lbLog.Refresh;
   if Pos(MisText, AMessage) =1 then begin
@@ -552,7 +555,12 @@ begin
 
   edProjectName.Text := '';
   edOutput.Text := '';
-  edMsgLvl.Text := '2'; //seVerbosity.Value := 2;
+{$IFDEF old}
+  MsgLvl := 2;
+  edMsgLvl.Text := IntToStr(MsgLvl);  // '2'; //seVerbosity.Value := 2;
+{$ELSE}
+  swLevel.Position := 2;
+{$ENDIF}
 
   lbFiles.Clear;
   lbInclude.Clear;
