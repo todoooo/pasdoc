@@ -280,7 +280,7 @@ type
   private
     FConvertString: TStringConverter;
     FAbbreviations: TStringList;
-    FOnMessage: TPasDocMessageEvent;
+    FOnMessage: TPasDocAppMessageEvent; //-TPasDocMessageEvent;
     FParagraph: string;
     FSpace: string;
     FShortDash, FEnDash, FEmDash: string;
@@ -320,7 +320,11 @@ type
       see e.g. TDocGenerator.DoMessageFromExpandDescription.
       Maybe in the future we will do some descendant of this class,
       like TTagManagerForPasItem. }
+  {$IFDEF old}
     property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
+  {$ELSE}
+    property OnMessage: TPasDocAppMessageEvent read FOnMessage write FOnMessage;
+  {$ENDIF}
 
     { This will be inserted on paragraph marker (two consecutive newlines,
       see wiki page WritingDocumentation) in the text.
@@ -708,7 +712,8 @@ var
           (Description[i] in ['A'..'Z', 'a'..'z']) do
       Inc(i);
 
-    if i = FOffset + 1 then Exit; { exit with false }
+    if i = FOffset + 1 then
+      Exit; { exit with false }
 
     TagName := Copy(Description, FOffset + 1, i - FOffset - 1);
     Tag := {FTags.}FindByName(TagName);
@@ -814,10 +819,10 @@ var
 
   { Checks does Description[FOffset] may be a beginning of some URL.
     (xxx://xxxx/.../).
-      
+
     If yes, returns true and sets OffsetEnd to the next
     index in Description after this URL.
-    
+
     For your comfort, returns also URL (this is *always*
     Copy(Description, FOffset, OffsetEnd - FOffset)). }
   function FindURL(out OffsetEnd: Integer; out URL: string): boolean;
@@ -855,18 +860,18 @@ var
     while (Description[i] in HalfLinkChars) do Dec(i);
     Inc(i);
     OffsetEnd := i;
-    
+
     URL := Copy(Description, FOffset, OffsetEnd - FOffset);
   end;
 
-  { Checks does Description[FOffset] may be a beginning of some 
+  { Checks does Description[FOffset] may be a beginning of some
     qualified identifier (identifier is [A-Za-z_]([A-Za-z_0-9])*,
     qualified identifier is a sequence of identifiers delimited
     by dots).
 
     If yes, returns true and sets OffsetEnd to the next
     index in Description after this qualified ident.
-    
+
     For your comfort, returns also QualifiedIdentifier
     (this is *always* equal to SplitNameParts(
     Copy(Description, FOffset, OffsetEnd - FOffset))). }
@@ -879,11 +884,11 @@ var
   var
     NamePartBegin: Integer;
   begin
-    Result := 
+    Result :=
       ( (FOffset = 1) or
         not (Description[FOffset - 1] in AnyQualifiedIdentChar) ) and
       SCharIs(Description, FOffset, FirstIdentChar);
-    
+
     if Result then
     begin
       NamePartBegin := FOffset;
@@ -892,9 +897,9 @@ var
 
       repeat
         { skip a sequence of NonFirstIdentChar characters }
-        while SCharIs(Description, OffsetEnd, NonFirstIdentChar) do 
+        while SCharIs(Description, OffsetEnd, NonFirstIdentChar) do
           Inc(OffsetEnd);
-          
+
         if Length(QualifiedIdentifier) = MaxNameParts then
         begin
           { I can't add new item to QualifiedIdentifier.
@@ -902,7 +907,7 @@ var
           Result := false;
           Exit;
         end;
-        
+
         { Append next part to QualifiedIdentifier }
         SetLength(QualifiedIdentifier, Length(QualifiedIdentifier) + 1);
         QualifiedIdentifier[Length(QualifiedIdentifier) - 1] :=

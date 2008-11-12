@@ -85,6 +85,7 @@ const
     (BaseFileName: 'GVUses'        ; TranslationId: trGvUses                ; TranslationHeadlineId: trGvUses { no headline }        ; NoItemsTranslationId: trNone { unused }  ; ),
     (BaseFileName: 'GVClasses'     ; TranslationId: trGvClasses             ; TranslationHeadlineId: trGvClasses { no headline }     ; NoItemsTranslationId: trNoCIOs { unused }; )
   );
+  { }
 
   { Using High(TCreatedOverviewFile) or High(Overview)
     where Overview: TCreatedOverviewFile
@@ -244,8 +245,8 @@ type
     procedure AddTags;
     procedure ClearTags;
 
-    { This just calls OnMessage (if assigned), but it appends
-      to AMessage FCurrentItem.QualifiedName. }
+    { This just calls DoMessage, appending FCurrentItem.QualifiedName
+      to AMessage. }
     procedure DoMessageFromExpandDescription(
       const MessageType: TPasDocMessageType; const AMessage: string;
       const AVerbosity: Cardinal);
@@ -380,11 +381,14 @@ type
   protected
     FClassHierarchy: TDescriptionItem;
 
+  {$IFDEF old}
     procedure DoError(const AMessage: string; const AArguments: array of const;
       const AExitCode: Word);
     procedure DoMessage(const AVerbosity: Cardinal;
       const MessageType: TPasDocMessageType; const AMessage: string;
       const AArguments: array of const);
+  {$ELSE}
+  {$ENDIF}
 
     procedure CreateClassHierarchy;
 
@@ -1544,9 +1548,16 @@ procedure TDocGenerator.DoMessageFromExpandDescription(
   const MessageType: TPasDocMessageType; const AMessage: string;
   const AVerbosity: Cardinal);
 begin
+{$IFDEF old}
   if Assigned(OnMessage) then
-    OnMessage(MessageType, AMessage +
-      ' (in description of "' + FCurrentItem.QualifiedName + '")', AVerbosity);
+    OnMessage(MessageType,
+      AMessage + ' (in description of "' + FCurrentItem.QualifiedName + '")',
+      AVerbosity);
+{$ELSE}
+  DoMessage(AVerbosity, MessageType,
+      AMessage + ' (in description of "' + FCurrentItem.QualifiedName + '")',
+      []);
+{$ENDIF}
 end;
 
 procedure TDocGenerator.TryAutoLink(TagManager: TTagManager;
@@ -1821,9 +1832,30 @@ procedure TDocGenerator.ExpandDescriptions;
       moreover, you would break the value of FirstSentenceEnd by such thing). }
     //InitTags(Item);
     Expanded := ExpandDescription(PreExpand,
-      Item, Trim(Item.RawDescription), true, FirstSentenceEnd);
-    if not PreExpand then
+      Item, Trim(Item.RawDescription), not PreExpand, FirstSentenceEnd);
+    if not PreExpand then begin
+    (* If an abstract was specified, it already resides in item.abstract.
+      We only set item.FirstSentenceEnd, and let the item decide.
+    *)
+    {$IFDEF old}
+      Item.AbstractDescriptionWasAutomatic :=
+        AutoAbstract and (Trim(Item.AbstractDescription) = '');
+
+      if Item.AbstractDescriptionWasAutomatic then begin
+        Item.AbstractDescription :=
+          Copy(Expanded, 1, FirstSentenceEnd);
+        Item.DetailedDescription :=
+          Copy(Expanded, FirstSentenceEnd + 1, MaxInt);
+      end;
+      if AutoAbstract and (Item.AbstractDescription = '') then begin
+        Item.AbstractDescription
+      end else
+        Item.DetailedDescription := Expanded;
+    {$ELSE}
       Item.DetailedDescription := Expanded;
+      Item.FirstSentenceEnd := FirstSentenceEnd;
+    {$ENDIF}
+    end;
 
     if item is TPasScope then begin
     //expand the Members list. No groups or excluded items yet!
@@ -2320,13 +2352,12 @@ end;
 
 { ---------------------------------------------------------------------------- }
 
+{$IFDEF old}
 procedure TDocGenerator.DoError(const AMessage: string; const AArguments:
   array of const; const AExitCode: Word);
 begin
   raise EPasDoc.Create(AMessage, AArguments, AExitCode);
 end;
-
-{ ---------------------------------------------------------------------------- }
 
 procedure TDocGenerator.DoMessage(const AVerbosity: Cardinal; const
   MessageType: TPasDocMessageType; const AMessage: string; const AArguments: array of
@@ -2336,6 +2367,8 @@ begin
     OnMessage(MessageType, Format(AMessage, AArguments), AVerbosity);
   end;
 end;
+{$ELSE}
+{$ENDIF}
 
 
 procedure TDocGenerator.CreateClassHierarchy;
@@ -2541,7 +2574,7 @@ begin
   if CheckSpelling then
   begin
     try
-      FAspellProcess := TAspellProcess.Create(AMode, AspellLanguage);
+      FAspellProcess := TAspellProcess.Create(self, AMode, AspellLanguage);
     except
       on E: Exception do
       begin
@@ -2551,7 +2584,7 @@ begin
       end;
     end;
 
-    FAspellProcess.OnMessage := OnMessage;
+    //FAspellProcess.OnMessage := OnMessage;
 
     WordsToIgnore := TStringList.Create;
     try

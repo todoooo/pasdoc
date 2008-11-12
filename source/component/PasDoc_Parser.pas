@@ -108,13 +108,16 @@ type
     { The underlying scanner object. }
     Scanner: TScanner;
 
+  {$IFDEF old}
     FOnMessage: TPasDocMessageEvent;
     FVerbosity: Cardinal;
-
-    procedure DoError(const AMessage: string;
-      const AArguments: array of const);
     procedure DoMessage(const AVerbosity: Cardinal; const MessageType:
       TPasDocMessageType; const AMessage: string; const AArguments: array of const);
+  {$ELSE}
+    FDoc: TPasDoc;
+  {$ENDIF}
+    procedure DoError(const AMessage: string;
+      const AArguments: array of const);
 
   protected
   //Token + whitespace recorder
@@ -337,8 +340,7 @@ type
   {$ELSE}
     { Create a parser, initialize the scanner with input stream S.
       All strings in SD are defined compiler directives. }
-    constructor Create(InputStream: TStream; const AStreamName, AStreamPath: string;
-      const CmdOptions: TOptionRec);
+    constructor Create(ADoc: TPasDoc; InputStream: TStream; const AStreamName, AStreamPath: string);
   {$ENDIF}
 
     { Release all dynamically allocated memory. }
@@ -348,8 +350,8 @@ type
       InputStream and filling all U properties. }
     procedure ParseUnitOrProgram(var U: TPasUnit);
 
-    property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
   {$IFDEF old}
+    property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
     property CommentMarkers: TStringList read FCommentMarkers write SetCommentMarkers;
   {$ELSE}
   //refers to the global CommentMarkers option.
@@ -405,12 +407,16 @@ begin
 end;
 {$ELSE}
 
-constructor TParser.Create(InputStream: TStream; const AStreamName, AStreamPath: string;
-  const CmdOptions: TOptionRec);
+constructor TParser.Create(ADoc: TPasDoc; InputStream: TStream;
+  const AStreamName, AStreamPath: string);
 begin
   inherited Create;
+{$IFDEF old}
   FOnMessage := CmdOptions.OnMessage;
   FVerbosity := CmdOptions.Verbosity;
+{$ELSE}
+  FDoc := ADoc;
+{$ENDIF}
 
 {$IFDEF old}
   Scanner := TScanner.Create(InputStream, OnMessageEvent,
@@ -419,12 +425,12 @@ begin
   Scanner.IncludeFilePaths := IncludeFilePaths;
   FCommentMarkers := TStringlist.Create;
 {$ELSE}
-  Scanner := TScanner.Create(InputStream, AStreamName, AStreamPath, CmdOptions);
-  ImplicitVisibility := CmdOptions.ImplicitVisibility;
-  CommentMarkers := CmdOptions.CommentMarkers;
-  MarkersOptional := CmdOptions.MarkerOptional;
-  SingleCharMarkers := CmdOptions.SingleCharMarkers;
-  IgnoreLeading := CmdOptions.IgnoreLeading;
+  Scanner := TScanner.Create(FDoc, InputStream, AStreamName, AStreamPath);
+  ImplicitVisibility := FDoc.ImplicitVisibility;
+  CommentMarkers := FDoc.CommentMarkers;
+  MarkersOptional := FDoc.MarkerOptional;
+  SingleCharMarkers := FDoc.SingleCharMarkers;
+  IgnoreLeading := FDoc.IgnoreLeading;
 {$ENDIF}
 
   //ItemsForNextBackComment := TPasItems.Create(false);
@@ -458,12 +464,15 @@ begin
   raise EPasDoc.Create(Scanner.GetStreamInfo + ': ' + AMessage, AArguments, 1);
 end;
 
+{$IFDEF old}
 procedure TParser.DoMessage(const AVerbosity: Cardinal; const MessageType:
   TPasDocMessageType; const AMessage: string; const AArguments: array of const);
 begin
   if (AVerbosity <= FVerbosity) and Assigned(FOnMessage) then
     FOnMessage(MessageType, Format(AMessage, AArguments), AVerbosity);
 end;
+{$ELSE}
+{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 
@@ -791,7 +800,7 @@ var
 
   procedure DropRem;
   begin
-    DoMessage(2, pmtWarning, 'Stream mismatch comment: "%s"', [t.CommentContent]);
+    FDoc.DoMessage(2, pmtWarning, 'Stream mismatch comment: "%s"', [t.CommentContent]);
     Pending := t.Next;
     FreeAndNil(t);
   end;
@@ -835,13 +844,13 @@ begin
   while assigned(Pending) do begin
     t := Pending;
     if t.StreamName <> item.NameStream then begin
-      DoMessage(2, pmtWarning, 'Stream mismatch comment: "%s"', [t.CommentContent]);
+      FDoc.DoMessage(2, pmtWarning, 'Stream mismatch comment: "%s"', [t.CommentContent]);
       Pending := t.Next;
       FreeAndNil(t);
     end else if t.BeginPosition > item.NamePosition then
       break //may be back rem, handled later
     else if t.Mark <> cmFwd then begin
-      DoMessage(2, pmtWarning, 'No target for back comment: "%s"', [t.CommentContent]);
+      FDoc.DoMessage(2, pmtWarning, 'No target for back comment: "%s"', [t.CommentContent]);
       Pending := t.Next;
       FreeAndNil(t);
     end else begin
@@ -1135,7 +1144,7 @@ The arguments can be identifiers, so that we should assume that
     Ident := QualID(True, True);  //allow for operator???
   M := CreateItem(TPasMethod, MethodType, Ident) as TPasMethod;
 
-  DoMessage(5, pmtInformation, 'Parsing %s "%s"',
+  FDoc.DoMessage(5, pmtInformation, 'Parsing %s "%s"',
     [LowerCase(TokenNames[MethodType]), M.Name]);
 
 {$IFDEF ParseParams}
@@ -1243,7 +1252,7 @@ class = CLASS [ ABSTRACT | SEALED ] [ancestors] [guid]
 or
   ident = CLASS <| ";" |>
 *)
-  DoMessage(5, pmtInformation, 'Parsing class/interface/object "%s"',
+  FDoc.DoMessage(5, pmtInformation, 'Parsing class/interface/object "%s"',
     [Ident.Data]);  //[CioName]);
   { Test for forward class definition here:
       class MyClass = class;
@@ -1343,7 +1352,7 @@ or
     //peek sections
       if Token.MyType in sSections then begin
       //to be implemented
-        DoMessage(1, pmtWarning, 'unhandled section in CIO: %s', [Token.Description]);
+        FDoc.DoMessage(1, pmtWarning, 'unhandled section in CIO: %s', [Token.Description]);
         GetNextToken;
       end;
     //everything else should be a member declaration
@@ -1392,7 +1401,7 @@ begin
 (* const ident <| [":" type] "=" value ";" |>
 *)
   i := CreateItem(TPasConstant, KEY_CONST, QualId(False));
-  DoMessage(5, pmtInformation, 'Parsing constant %s', [i.Name]);
+  FDoc.DoMessage(5, pmtInformation, 'Parsing constant %s', [i.Name]);
   SkipDeclaration(True, i);
   i.FullDeclaration := Recorded;
   CheckToken(Token, SYM_SEMICOLON);
@@ -1456,7 +1465,7 @@ clauses:
 Procedures are special, due to possible modifiers?
 All possible modifiers should be peeked!
 *)
-  DoMessage(4, pmtInformation, 'Entering interface section of unit %s',[U.Name]);
+  FDoc.DoMessage(4, pmtInformation, 'Entering interface section of unit %s',[U.Name]);
   Finished := False;
   Mode := MODE_UNDEFINED;
 
@@ -1509,7 +1518,7 @@ decl: [ params ] ":" type [index] [reader] [writer] [";"] [default *] [stored *]
   ";"
 *)
   TPasItem(p) := CreateItem(TPasProperty, KEY_PROPERTY, nil);
-  DoMessage(5, pmtInformation, 'Parsing property %s', [p.Name]);
+  FDoc.DoMessage(5, pmtInformation, 'Parsing property %s', [p.Name]);
 {$IFDEF DetailedProps}
   p.IndexDecl := '';
   p.Proptype := '';
@@ -1624,7 +1633,7 @@ decl can be
 *)
   QualID(False);
   TypeName := Identifier.Data;
-  DoMessage(5, pmtInformation, 'Parsing type "%s"', [TypeName]);
+  FDoc.DoMessage(5, pmtInformation, 'Parsing type "%s"', [TypeName]);
 
   if Skip(SYM_SEMICOLON) then
     Exit; //what's that???

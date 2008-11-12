@@ -859,9 +859,9 @@ end;
 function TGenericHTMLDocGenerator.MakeTargettedLink(
   const href, caption, CssClass, TargetFrame: string): string;
 begin
-  Result := Format('<a %s %s href="%s">%s</a>',
-    [ifthen(CssClass = '', '', 'class="' + CssClass + '"'),
-     ifthen(TargetFrame = '', '', 'target="' + TargetFrame + '"'),
+  Result := Format('<a%s%s href="%s">%s</a>',
+    [ifthen(CssClass = '', '', ' class="' + CssClass + '"'),
+     ifthen(TargetFrame = '', '', ' target="' + TargetFrame + '"'),
      EscapeURL(href), caption]);
 end;
 

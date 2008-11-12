@@ -73,8 +73,12 @@ type
   {$ENDIF}
 
     FIncludeFilePaths: TStringVector;
+  {$IFDEF old}
     FOnMessage: TPasDocMessageEvent;
     FVerbosity: Cardinal;
+  {$ELSE}
+    FDoc: TPasDoc;
+  {$ENDIF}
     FHandleMacros: boolean;
     property IncludeFilePaths: TStringVector read FIncludeFilePaths;
 
@@ -116,11 +120,14 @@ type
     procedure SetIncludeFilePaths(Value: TStringVector);
   {$ELSE}
   {$ENDIF}
+  {$IFDEF old}
   protected
-    procedure DoError(const AMessage: string; 
+    procedure DoError(const AMessage: string;
       const AArguments: array of const);
     procedure DoMessage(const AVerbosity: Cardinal; const MessageType:
       TPasDocMessageType; const AMessage: string; const AArguments: array of const);
+  {$ELSE}
+  {$ENDIF}
   public
     { Creates a TScanner object that scans the given input stream.
     
@@ -136,18 +143,18 @@ type
       const AStreamName, AStreamPath: string;
       const AHandleMacros: boolean);
   {$ELSE}
-    constructor Create(S: TStream; const AStreamName, AStreamPath: string;
-      const CmdOptions: TOptionRec);
+    constructor Create(ADoc: TPasDoc; S: TStream; const AStreamName, AStreamPath: string);
+
   {$ENDIF}
     destructor Destroy; override;
 
     { Adds Name to the list of symbols (as a normal symbol, not macro). }
     procedure AddSymbol(const Name: string);
-    
+
     { Adds all symbols in the NewSymbols collection by calling
       @link(AddSymbol) for each of the strings in that collection. }
     procedure AddSymbols(const NewSymbols: TStringVector);
-    
+
     { Adds Name as a symbol that is a macro, that expands to Value. }
     procedure AddMacro(const Name, Value: string);
     
@@ -181,8 +188,11 @@ type
       after some GetToken. }
     procedure UnGetToken(var t: TToken);
 
+  {$IFDEF old}
     property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
     property Verbosity: Cardinal read FVerbosity write FVerbosity;
+  {$ELSE}
+  {$ENDIF}
     property SwitchOptions: TSwitchOptions read FSwitchOptions;
     
     property HandleMacros: boolean read FHandleMacros;
@@ -344,16 +354,21 @@ constructor TScanner.Create(
   const AStreamName, AStreamPath: string;
   const AHandleMacros: boolean);
 {$ELSE}
-constructor TScanner.Create(S: TStream; const AStreamName, AStreamPath: string;
-  const CmdOptions: TOptionRec);
+constructor TScanner.Create(ADoc: TPasDoc; S: TStream;
+  const AStreamName, AStreamPath: string);
 {$ENDIF}
 var
   c: TUpperCaseLetter;
 begin
   inherited Create;
+{$IFDEF old}
   FOnMessage := CmdOptions.OnMessage;
   FVerbosity := CmdOptions.Verbosity;
   FHandleMacros := CmdOptions.HandleMacros;
+{$ELSE}
+  FDoc := ADoc;
+  FHandleMacros := ADoc.HandleMacros;
+{$ENDIF}
 
   { Set default switch directives (according to the Delphi 4 Help). }
   for c := Low(SwitchOptions) to High(SwitchOptions) do
@@ -377,8 +392,12 @@ begin
   FSymbols := TStringPairVector.Create(true);
 {$ENDIF}
 
+{$IFDEF old}
   FTokenizers[0] := TTokenizer.Create(s, CmdOptions.OnMessage, CmdOptions.Verbosity,
     AStreamName, AStreamPath);
+{$ELSE}
+  FTokenizers[0] := TTokenizer.Create(FDoc, s, AStreamName, AStreamPath);
+{$ENDIF}
   FCurrentTokenizer := 0;
   FBufferedToken := nil;
 
@@ -417,9 +436,8 @@ end;
 
 procedure TScanner.AddSymbol(const Name: string);
 begin
-  if not IsSymbolDefined(Name) then 
-  begin
-    DoMessage(6, pmtInformation, 'Symbol "%s" defined', [Name]);
+  if not IsSymbolDefined(Name) then begin
+    FDoc.DoMessage(6, pmtInformation, 'Symbol "%s" defined', [Name]);
   {$IFDEF SymHash}
     FSymbols.SetValueData(Name, '', SymbolIsNotMacro);
   {$ELSE}
@@ -448,20 +466,20 @@ begin
 {$IFDEF SymHash}
   i := FSymbols.IndexOf(Name);
   if i < 0 then begin
-    DoMessage(6, pmtInformation, 'Macro "%s" defined as "%s"', [Name, Value]);
+    FDoc.DoMessage(6, pmtInformation, 'Macro "%s" defined as "%s"', [Name, Value]);
     FSymbols.SetValueData(Name, Value, SymbolIsMacro);
   end else begin
-    DoMessage(6, pmtInformation, 'Macro "%s" RE-defined as "%s"', [Name, Value]);
+    FDoc.DoMessage(6, pmtInformation, 'Macro "%s" RE-defined as "%s"', [Name, Value]);
     { Redefine macro in this case. }
     FSymbols.Items[i]^.Value := Value;
   end;
 {$ELSE}
   i := FSymbols.FindName(Name);
   if i = -1 then begin
-    DoMessage(6, pmtInformation, 'Macro "%s" defined as "%s"', [Name, Value]);
+    FDoc.DoMessage(6, pmtInformation, 'Macro "%s" defined as "%s"', [Name, Value]);
     FSymbols.Add(TStringPair.Create(Name, Value, SymbolIsMacro));
   end else begin
-    DoMessage(6, pmtInformation, 'Macro "%s" RE-defined as "%s"', [Name, Value]);
+    FDoc.DoMessage(6, pmtInformation, 'Macro "%s" RE-defined as "%s"', [Name, Value]);
     { Redefine macro in this case. }
     FSymbols.Items[i].Value := Value;
   end;
@@ -573,25 +591,21 @@ function TScanner.GetToken: TToken;
   procedure HandleIfDirective(IsTrue: boolean;
     const DirectiveName, DirectiveParam: string);
   begin
-    DoMessage(6, pmtInformation, 
+    FDoc.DoMessage(6, pmtInformation,
       '$%s encountered (%s), condition is %s, level %d',
       [DirectiveName, DirectiveParam, BoolToStr(IsTrue), FDirectiveLevel]);
-    if IsTrue then 
-    begin
+    if IsTrue then begin
       Inc(FDirectiveLevel);
-    end else 
-    begin
-      if SkipUntilElseOrEndif then
-        Inc(FDirectiveLevel);
-    end;
+    end else if SkipUntilElseOrEndif then
+      Inc(FDirectiveLevel);
   end;
-  
-  { This is supposed to evaluate boolean conditions allowed after 
+
+  { This is supposed to evaluate boolean conditions allowed after
     $if and $elseif directives. TODO: For now, this is dummy, and just
     prints and warning and returns true. }
   function IsIfConditionTrue(const Condition: string): boolean;
   begin
-    DoMessage(2, pmtWarning, 
+    FDoc.DoMessage(2, pmtWarning, 
       'Evaluating $if and $elseif conditions is not implemented, ' +
       'I''m simply assuming that "%s" is true', [Condition]);
     Result := true;
@@ -632,25 +646,24 @@ begin
               HandleDefineDirective(DirectiveParamBlack, DirectiveParamWhite);
             DT_ELSE: 
               begin
-                DoMessage(5, pmtInformation, 'ELSE encountered', []);
-                if (FDirectiveLevel > 0) then
-                begin
+                FDoc.DoMessage(5, pmtInformation, 'ELSE encountered', []);
+                if (FDirectiveLevel > 0) then begin
                   if not SkipUntilElseOrEndif then
                     Dec(FDirectiveLevel);
                 end else
-                  DoError(GetStreamInfo + ': unexpected $ELSE directive', []);
+                  FDoc.DoError(GetStreamInfo + ': unexpected $ELSE directive', []);
               end;
             DT_ENDIF, DT_IFEND:
               begin
-                DoMessage(5, pmtInformation, '$%s encountered', [DirectiveName]);
+                FDoc.DoMessage(5, pmtInformation, '$%s encountered', [DirectiveName]);
                 if (FDirectiveLevel > 0) then
                 begin
                   Dec(FDirectiveLevel);
-                  DoMessage(6, pmtInformation, 'FDirectiveLevel = ' + IntToStr(FDirectiveLevel), []);
-                end else 
-                  DoError(GetStreamInfo + ': unexpected $%s directive', [DirectiveName]);
+                  FDoc.DoMessage(6, pmtInformation, 'FDirectiveLevel = ' + IntToStr(FDirectiveLevel), []);
+                end else
+                  FDoc.DoError(GetStreamInfo + ': unexpected $%s directive', [DirectiveName]);
               end;
-            DT_IFDEF: HandleIfDirective(IsSymbolDefined(DirectiveParamBlack), 
+            DT_IFDEF: HandleIfDirective(IsSymbolDefined(DirectiveParamBlack),
               'IFDEF', DirectiveParamBlack);
             DT_IFNDEF: HandleIfDirective(not IsSymbolDefined(DirectiveParamBlack),
               'IFNDEF', DirectiveParamBlack);
@@ -666,17 +679,17 @@ begin
                 begin
                   (* Then this is FPC's feature, see
                     "$I or $INCLUDE : Include compiler info" on
-                    [http://www.freepascal.org/docs-html/prog/progsu30.html]. 
-                    
+                    [http://www.freepascal.org/docs-html/prog/progsu30.html].
+
                     Unlike FPC, PasDoc will not expand the %variable%
-                    (for reasoning, see comments in 
-                    ../../tests/ok_include_environment.pas file). 
+                    (for reasoning, see comments in
+                    ../../tests/ok_include_environment.pas file).
                     We change Result to say that it's a string literal
                     (but we leave Result.Data as it is, to show exact
                     info to the user). We do *not* want to enclose it in
                     quotes, because then real string literal '{$I %DATE%}'
                     wouldn't be different than using {$I %DATE%} feature. *)
-                    
+
                   Result.MyType := TOK_STRING;
                   Break;
                 end else
@@ -684,31 +697,26 @@ begin
                   OpenIncludeFile(DirectiveParamBlack);
                 end;
               end;
-            DT_UNDEF: 
+            DT_UNDEF:
               begin
-                DoMessage(6, pmtInformation, 'UNDEF encountered (%s)', [DirectiveParamBlack]);
+                FDoc.DoMessage(6, pmtInformation, 'UNDEF encountered (%s)', [DirectiveParamBlack]);
                 DeleteSymbol(DirectiveParamBlack);
               end;
           end;
-        end else
-        begin
+        end else begin
           ResolveSwitchDirectives(Result.Data);
         end;
-        
+
         FreeAndNil(Result);
-      end else
-      if (Result.MyType = TOK_IDENTIFIER) and ExpandMacro(Result) then
-      begin
+      end else if (Result.MyType = TOK_IDENTIFIER) and ExpandMacro(Result) then begin
         FreeAndNil(Result);
-      end else
-      begin
+      end else begin
         { If the token is not a directive, and not an identifier that expands
           to a macro, then we just return it. }
         Finished := True;
       end;
-    end else
-    begin
-      DoMessage(5, pmtInformation, 'Closing file "%s"', 
+    end else begin
+      FDoc.DoMessage(5, pmtInformation, 'Closing file "%s"',
         [FTokenizers[FCurrentTokenizer].GetStreamInfo]);
       FTokenizers[FCurrentTokenizer].Free;
       FTokenizers[FCurrentTokenizer] := nil;
@@ -743,7 +751,7 @@ begin
     end;
   end;
 
-  DoMessage(2, pmtInformation, GetStreamInfo + ': Invalid $IFOPT parameter (%s).', [N]);
+  FDoc.DoMessage(2, pmtInformation, GetStreamInfo + ': Invalid $IFOPT parameter (%s).', [N]);
   Result := False;
 end;
 
@@ -751,23 +759,21 @@ end;
 
 procedure TScanner.OpenNewTokenizer(Stream: TStream;
   const StreamName, StreamPath: string);
-var 
+var
   Tokenizer: TTokenizer;
 begin
 
   { check if maximum number of FTokenizers has been reached }
-  if FCurrentTokenizer = MAX_TOKENIZERS - 1 then 
-  begin
+  if FCurrentTokenizer = MAX_TOKENIZERS - 1 then begin
     Stream.Free;
-    DoError('%s: Maximum level of recursion (%d) reached when trying to ' +
+    FDoc.DoError('%s: Maximum level of recursion (%d) reached when trying to ' +
       'create new tokenizer "%s" (Probably you have recursive file inclusion ' +
       '(with $include directive) or macro expansion)',
       [GetStreamInfo, MAX_TOKENIZERS, StreamName]);
   end;
-  
-  Tokenizer := TTokenizer.Create(Stream, FOnMessage, FVerbosity,
-    StreamName, StreamPath);
-  
+
+  Tokenizer := TTokenizer.Create(FDoc, Stream, StreamName, StreamPath);
+
   { add new tokenizer }
   Inc(FCurrentTokenizer);
   FTokenizers[FCurrentTokenizer] := Tokenizer;
@@ -781,11 +787,11 @@ var
   UseLowerCase: boolean;
 
   { Check for availability of file N inside given Path
-    (that must be like after IncludeTrailingPathDelimiter --- either 
+    (that must be like after IncludeTrailingPathDelimiter --- either
     '' or ends with PathDelim).
     It yes, then returns @true and opens new tokenizer with
     appropriate stream, else returns false.
-    
+
     Check both N and NLowerCase
     (on case-sensitive system, filename may be written in exact
     case (like for Kylix) or lowercase (like for FPC 1.0.x),
@@ -795,16 +801,15 @@ var
     Name: string;
   begin
     Name := Path + N;
-    DoMessage(5, pmtInformation, 'Trying to open include file "%s"...', [Name]);
+    FDoc.DoMessage(5, pmtInformation, 'Trying to open include file "%s"...', [Name]);
     Result := FileExists(Name);
 
-    if (not Result) and UseLowerCase then
-    begin
+    if (not Result) and UseLowerCase then begin
       Name := Path + NLowerCase;
-      DoMessage(5, pmtInformation, 'Trying to open include file "%s" (lowercased)...', [Name]);
-      Result := FileExists(Name);    
+      FDoc.DoMessage(5, pmtInformation, 'Trying to open include file "%s" (lowercased)...', [Name]);
+      Result := FileExists(Name);
     end;
-    
+
     if Result then
       { create new tokenizer with stream }
       OpenNewTokenizer(TFileStream.Create(Name, fmOpenRead or fmShareDenyWrite),
@@ -837,7 +842,7 @@ begin
   if not TryOpen(FTokenizers[FCurrentTokenizer].StreamPath) then
     if not TryOpenIncludeFilePaths then
       if not TryOpen('') then
-        DoError('%s: could not open include file %s', [GetStreamInfo, n]);
+        FDoc.DoError('%s: could not open include file %s', [GetStreamInfo, n]);
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -862,14 +867,14 @@ begin
   repeat
     t := FTokenizers[FCurrentTokenizer].SkipUntilCompilerDirective;
     if t = nil then begin
-      DoError('SkipUntilElseOrEndif GetToken', []);
+      FDoc.DoError('SkipUntilElseOrEndif GetToken', []);
     end;
 
     if (t.MyType = TOK_DIRECTIVE) then begin
       if IdentifyDirective(t.CommentContent, 
         dt, DirectiveName, DirectiveParamBlack, DirectiveParamWhite) then 
       begin
-        DoMessage(6, pmtInformation, 'SkipUntilElseOrFound: encountered directive %s', [DirectiveNames[dt]]);
+        FDoc.DoMessage(6, pmtInformation, 'SkipUntilElseOrFound: encountered directive %s', [DirectiveNames[dt]]);
         case dt of
           DT_IFDEF, DT_IFNDEF, DT_IFOPT, DT_IF: Inc(Level);
           DT_ELSE:
@@ -888,7 +893,7 @@ begin
   until (Level = 0) and (TT = TOK_DIRECTIVE) and 
     (dt in [DT_ELSE, DT_ENDIF, DT_IFEND]);
   Result := (dt = DT_ELSE);
-  DoMessage(6, pmtInformation, 'Skipped code, last directive is %s', [DirectiveNames[dt]]);
+  FDoc.DoMessage(6, pmtInformation, 'Skipped code, last directive is %s', [DirectiveNames[dt]]);
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -896,7 +901,7 @@ end;
 procedure TScanner.UnGetToken(var t: TToken);
 begin
   if Assigned(FBufferedToken) then
-    DoError('%s: FATAL ERROR - CANNOT UNGET MORE THAN ONE TOKEN.',
+    FDoc.DoError('%s: FATAL ERROR - CANNOT UNGET MORE THAN ONE TOKEN.',
       [GetStreamInfo]);
 
   FBufferedToken := t;
@@ -905,7 +910,8 @@ end;
 
 { ---------------------------------------------------------------------------- }
 
-procedure TScanner.DoError(const AMessage: string; 
+{$IFDEF old}
+procedure TScanner.DoError(const AMessage: string;
   const AArguments: array of const);
 begin
   raise EPasDoc.Create(AMessage, AArguments, 1);
@@ -919,6 +925,8 @@ begin
   if Assigned(FOnMessage) then
     FOnMessage(MessageType, Format(AMessage, AArguments), AVerbosity);
 end;
+{$ELSE}
+{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 

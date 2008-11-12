@@ -14,8 +14,18 @@ type
   { }
   TPasDocMessageType = (pmtPlainText, pmtInformation, pmtWarning, pmtError);
   { }
+{$IFDEF old}
   TPasDocMessageEvent = procedure(const MessageType: TPasDocMessageType; const
     AMessage: string; const AVerbosity: Cardinal) of object;
+{$ELSE}
+//this is the application message handler prototype
+  TPasDocAppMessageEvent = procedure(const MessageType: TPasDocMessageType; const
+    AMessage: string; const AVerbosity: Cardinal) of object;
+//this is the PasDoc internal message sender
+  TPasDocMessenger = procedure(const AVerbosity: Cardinal; const AMessageType:
+      TPasDocMessageType; const AMessage: string; const AArguments: array of const) of object;
+//DoMessage: TPasDocMessenger;
+{$ENDIF}
 
   TCharSet = set of Char;
 

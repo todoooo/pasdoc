@@ -368,20 +368,15 @@ type
   (* Full description, consisting of Name (abstract) and Value (description).
     More items (hints...) may be added.
     This is a shortcut to the description item, in the description list.
-
-    The description should be separated into:
-      ShortDescription (was: abstract, maybe automatic)
-      Abstract (only if explicitly defined!)
-      DetailedDescription (as defined)
-
-    We could use Name=abstract, Value=detailed
   *)
     FFullDescription: TDescriptionItem;
+  //Used in GetShortDescription, if Abstract=''.
+    FFirstSentenceEnd: integer;
   //create the description item, if not already done.
     function  NeedDescription: TDescriptionItem;
     function  GetAbstract: string;
     procedure SetAbstract(const s: string);
-  //first sentence of description
+  //return abstract or first sentence of description
     function  GetShortDescription: string;
     function  GetDetailedDescription: string;
   //currently needed for external items
@@ -554,7 +549,11 @@ type
     property DetailedDescription: string
       read GetDetailedDescription  write SetDetailedDescription;
 
+  (* Short description is either the AbstractDescription or, if empty,
+    the first sentence of the FullDescription.
+  *)
     property ShortDescription: string read GetShortDescription;
+    property FirstSentenceEnd: integer read FFirstSentenceEnd write FFirstSentenceEnd;
   {$IFDEF paragraphs}
     property Descriptions: TDescriptionItem read FDescriptionList;
   {$ELSE}
@@ -1774,6 +1773,7 @@ end;
 
 procedure TBaseItem.SetAbstract(const s: string);
 begin
+//don't trim the formatted abstract
   NeedDescription.Name := s;
 end;
 
@@ -1787,7 +1787,7 @@ end;
 
 procedure TBaseItem.SetDetailedDescription(const s: string);
 begin
-//description can start with NL!
+//description can start with NL! - don't trim?
   if s <> '' then
     NeedDescription.Value := s;
 end;
@@ -1810,35 +1810,23 @@ begin
 end;
 
 function TBaseItem.GetShortDescription: string;
-var
-  i: integer;
-const
-  MaxShortDescription = 60; //limit description length - become parameter???
 begin
-(* Get abstract, or first sentence, or first part of description.
-  Handling of line breaks???
-  It seems to be good to also truncate excessive abstracts.
-*)
-{ ToDo: collect words, until end of sentence or limit reached. }
+(* The short description is the abstract (if not empty), or the first sentence
+  of the FullDescription.
 
+  We cannot extract the first sentence here, because DetailedDescription already
+  is encoded in the output format, so that every trim could truncate tags.
+  So we use FirstSentenceEnd, as reported by generator.ExpandDescription.
+*)
 //try abstract, if found
   Result := AbstractDescription;
-  if Result = '' then begin
-  //try first sentence of full description
+  if Trim(Result) <> '' then
+    exit;
+//try first sentence of full description
+  if FirstSentenceEnd > 0 then
+    Result := Copy(DetailedDescription, 1, FirstSentenceEnd)
+  else
     Result := DetailedDescription;
-  //extract first sentence - retry after '.'<non-white>?
-    i := Pos('.', Result);
-    if (i > 1) and (i < Length(Result)) and (Result[i+1] in WhiteSpace) then begin
-      Result := Copy(Result, 1, i+1);
-      //exit;
-    end;
-  end;
-//fit as short description?
-  if Length(Result) > MaxShortDescription then begin
-  //trim description - could process words
-    SetLength(Result, MaxShortDescription);
-    Result := Result + '...';
-  end; //else fits already
 end;
 
 function TBaseItem.QualifiedName: String;
@@ -2285,20 +2273,23 @@ end;
 
 destructor TPasScope.Destroy;
 begin
-  FreeAndNil(FMembers);
-  FreeAndNil(FMemberLists);
-  if FHeritage is TPasItem then
-  //this is the ancestor of an overwritten class member
-    FHeritage := nil  //don't destroy the ancestor item - become delegate???
-  else if FHeritage <> nil then begin
-  {$IFDEF DbgFree}
-  { TODO : this destruction causes AV's, immediately or later }
-  //most probably the delegates destroy their targets - why?
-    FreeAndNil(FHeritage); //free the uses/ancestor list
-  {$ELSE}
-    //don't destroy, until the bug is fixed
-  {$ENDIF}
+  if FHeritage <> nil then begin
+    if FHeritage is TPasItem then
+    //this is the ancestor of an overwritten class member
+      FHeritage := nil  //don't destroy the ancestor item - become delegate???
+    else begin
+    {$IFDEF DbgFree}
+    { TODO : this destruction causes AV's, immediately or later }
+    //most probably the delegates destroy their targets - why?
+      FHeritage := nil; //don't destroy, until the bug is fixed
+      //FreeAndNil(FHeritage); //free the uses/ancestor list
+    {$ELSE}
+      FHeritage := nil; //don't destroy, until the bug is fixed
+    {$ENDIF}
+    end;
   end;
+  FreeAndNil(FMemberLists);
+  FreeAndNil(FMembers);
   inherited;
 end;
 
@@ -2970,16 +2961,22 @@ var
 {$ELSE}
 {$ENDIF}
 begin
-{$IFDEF DbgFree}
-//debug - we could set up ourself as "unit under destruction".
-  s := self.Name;
-  assert(UnitUnderDestruction = nil, 'illegal destroy unit');
-  UnitUnderDestruction := self;
-  inherited Destroy;
-  UnitUnderDestruction := nil;
-{$ELSE}
-  inherited Destroy;
-{$ENDIF}
+  try
+  {$IFDEF DbgFree}
+  //debug - set up ourself as "unit under destruction".
+    s := self.Name;
+    assert(UnitUnderDestruction = nil, 'illegal destroy unit');
+    UnitUnderDestruction := self;
+    inherited Destroy;
+    UnitUnderDestruction := nil;
+  {$ELSE}
+    inherited Destroy;
+  {$ENDIF}
+  except
+    on E: Exception do begin
+      //ShowException(E, nil); //debug here
+    end;
+  end;
 end;
 
 procedure TPasUnit.Deserialize(const ASource: TStream);

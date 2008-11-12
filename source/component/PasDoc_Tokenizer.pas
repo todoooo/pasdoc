@@ -29,6 +29,7 @@ interface
 uses
   PasDoc_Utils,
   PasDoc_Types,
+  PasDoc_Base,
   Classes;
 
 type
@@ -37,8 +38,12 @@ type
   private
     function StreamPosition: TTextStreamPos;
   protected
+  {$IFDEF old}
     FOnMessage: TPasDocMessageEvent;
     FVerbosity: Cardinal;
+  {$ELSE}
+    FDoc: TPasDoc;
+  {$ENDIF}
     { if @link(IsCharBuffered) is true, this field contains the buffered
       character }
     BufferedChar: Char;
@@ -54,11 +59,15 @@ type
     Stream: TStream;
     FStreamName: string;
     FStreamPath: string;
-    
-    procedure DoError(const AMessage: string; const AArguments: array of
-      const; const AExitCode: Word);
+
+  {$IFDEF old}
     procedure DoMessage(const AVerbosity: Cardinal; const MessageType:
       TPasDocMessageType; const AMessage: string; const AArguments: array of const);
+  {$ELSE}
+    DoMessage: TPasDocMessenger;
+  {$ENDIF}
+    procedure DoError(const AMessage: string; const AArguments: array of
+      const; const AExitCode: Word);
 
     procedure CheckForDirective(const t: TToken);
     procedure ConsumeChar;
@@ -77,13 +86,20 @@ type
       t: TToken): Boolean;
 
   public
-    { Creates a TTokenizer and associates it with given input TStream. 
+    { Creates a TTokenizer and associates it with given input TStream.
       Note that AStream will be freed when this object will be freed. }
+  {$IFDEF old}
     constructor Create(
       const AStream: TStream;
       const OnMessageEvent: TPasDocMessageEvent;
       const VerbosityLevel: Cardinal;
       const AStreamName, AStreamPath: string);
+  {$ELSE}
+    constructor Create(
+      ADoc: TPasDoc;
+      const AStream: TStream;
+      const AStreamName, AStreamPath: string);
+  {$ENDIF}
     { Releases all dynamically allocated memory. }
     destructor Destroy; override;
     function HasData: Boolean;
@@ -91,18 +107,21 @@ type
     function GetToken: TToken;
     { Skips all chars until it encounters either $ELSE or $ENDIF compiler defines. }
     function SkipUntilCompilerDirective: TToken;
-    
-    property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
+
+  {$IFDEF old}
+    property OnMessage: TPasDocMessenger read FOnMessage write FOnMessage;
     property Verbosity: Cardinal read FVerbosity write FVerbosity;
+  {$ELSE}
+  {$ENDIF}
     property StreamName: string read FStreamName;
-    
+
     { This is the path where the underlying file of this stream is located.
-    
+
       It may be an absolute path or a relative path. Relative paths
       are always resolved vs pasdoc current directory.
       This way user can give relative paths in command-line
       when writing Pascal source filenames to parse.
-    
+
       In particular, this may be '' to indicate current dir.
 
       It's always specified like it was processed by
@@ -149,15 +168,24 @@ const
 { TTokenizer }
 { ---------------------------------------------------------------------------- }
 
+{$IFDEF old}
 constructor TTokenizer.Create(
   const AStream: TStream;
   const OnMessageEvent: TPasDocMessageEvent;
   const VerbosityLevel: Cardinal;
   const AStreamName, AStreamPath: string);
+{$ELSE}
+constructor TTokenizer.Create(ADoc: TPasDoc; const AStream: TStream;
+  const AStreamName, AStreamPath: string);
+{$ENDIF}
 begin
   inherited Create;
+{$IFDEF old}
   FOnMessage := OnMessageEvent;
   FVerbosity := VerbosityLevel;
+{$ELSE}
+  FDoc := ADoc;
+{$ENDIF}
   Row := 1;
   Stream := AStream;
   FStreamName := AStreamName;
@@ -208,12 +236,15 @@ end;
 
 { ---------------------------------------------------------------------------- }
 
+{$IFDEF old}
 procedure TTokenizer.DoMessage(const AVerbosity: Cardinal; const MessageType:
   TPasDocMessageType; const AMessage: string; const AArguments: array of const);
 begin
   if (AVerbosity < FVerbosity) and Assigned(FOnMessage) then
     FOnMessage(MessageType, Format(AMessage, AArguments), AVerbosity);
 end;
+{$ELSE}
+{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 
