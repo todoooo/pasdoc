@@ -2,13 +2,17 @@ unit PasDoc_GenHtmlHelp;
 
 interface
 
-uses PasDoc_GenHtml;
+uses PasDoc_GenHtml, PasDoc_GenFullHtml;
 
 type
+{$IFDEF old}
   THTMLHelpDocGenerator = class(TGenericHTMLDocGenerator)
+{$ELSE}
+  THTMLHelpDocGenerator = class(TFullHTMLDocGenerator)
+{$ENDIF}
   private
     FContentsFile: string;
-    
+
     { Writes the topic files for Html Help Generation }
     procedure WriteHtmlHelpProject;
   public

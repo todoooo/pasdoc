@@ -41,19 +41,13 @@ type
   //the current output file name
     CurFile: string;
 
-    function CreateLink(const Item: TBaseItem): string; override;
+    function  CreateLink(const Item: TBaseItem): string; override;
   //get menu entries, based on item
     function  GetSectionsInMenu(item: TBaseItem): TSectionsInMenu; virtual;
   //Return anchor string, based on a translation ID.
     function  GetSectionAnchorID(tid: TTranslationID): string;
   //Return anchor string, based on a translation ID and section name.
     function  GetSectionAnchor(items: TDescriptionItem): string;
-  {$IFDEF old}
-  //Get (possibly qualified) section heading.
-    function GetMemberSectionHeading(items: TDescriptionItem): string;
-  {$ELSE}
-    //-in base class
-  {$ENDIF}
 
     procedure WriteDescriptionSectionHeading(const Caption: TTranslationID);
     { Writes heading S to output, at heading level I.
@@ -75,9 +69,12 @@ type
 
     { Writes dates (Created and LastMod) at heading level HL to output. }
     procedure WriteDate(HL: integer; ADate: TDescriptionItem);
+  {$IFDEF new}
     { Writes authors to output, at heading level HL. Will not write anything
       if collection of authors is not assigned or empty. }
     procedure WriteAuthors(HL: integer; Authors: TDescriptionItem);
+  {$ELSE}
+  {$ENDIF}
     procedure WriteSeeAlso(HL: integer; SeeAlso: TDescriptionItem; AScope: TPasScope);
 
     { Writes the Item's short description, into a table cell.
@@ -252,6 +249,7 @@ begin
   WriteHeading(HL, CssClass, Language.Translation[tid], GetSectionAnchorID(tid));
 end;
 
+{$IFDEF new}
 procedure TFullHTMLDocGenerator.WriteAuthors(HL: integer; Authors: TDescriptionItem);
 var
   i: Integer;
@@ -286,6 +284,9 @@ begin
   end;
   WriteDirectLine('</ul>');
 end;
+{$ELSE}
+  //unchanged
+{$ENDIF}
 
 procedure TFullHTMLDocGenerator.WriteCIO(HL: integer; const CIO: TPasCio);
 begin //WriteCIO
@@ -303,6 +304,7 @@ begin
   for i := 0 to c.Count - 1 do begin
     p := TPasCio(c.PasItemAt[i]);
 
+  {$IFDEF old}
     if (p.MyUnit <> nil) and
        p.MyUnit.FileNewerThanCache(DestinationDirectory + p.OutputFileName) then
     begin
@@ -311,6 +313,9 @@ begin
         'skipped.', [p.Name]);
       Continue;
     end;
+  {$ELSE}
+  //unit was checked
+  {$ENDIF}
     WriteItem(HL, p);
   end;
 end;
@@ -846,7 +851,9 @@ begin
   WriteSpellChecked(ExternalItem.DetailedDescription);
 
   WriteAuthors(HL + 1, ExternalItem.Authors);
-  WriteDates(HL + 1, ExternalItem.Created, ExternalItem.LastMod);
+  //WriteDates(HL + 1, ExternalItem.Created, ExternalItem.LastMod);
+  WriteDate(HL+1, ExternalItem.Created);
+  WriteDate(HL+1, ExternalItem.LastMod);
   WriteFooter;
   WriteAppInfo;
   WriteEndOfDocument;

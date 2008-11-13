@@ -1830,7 +1830,6 @@ procedure TDocGenerator.ExpandDescriptions;
       Item.DetailedDescription (because whitespaces,
       including leading and trailing, may be important for final doc format;
       moreover, you would break the value of FirstSentenceEnd by such thing). }
-    //InitTags(Item);
     Expanded := ExpandDescription(PreExpand,
       Item, Trim(Item.RawDescription), not PreExpand, FirstSentenceEnd);
     if not PreExpand then begin
@@ -2327,7 +2326,8 @@ begin
   if IsEmpty(Units) then Exit;
   for i := 0 to Units.Count - 1 do begin
     U := Units.UnitAt[i];
-    WriteUnit(HL, U);
+    if not u.ToBeExcluded then
+      WriteUnit(HL, U);
   end;
 end;
 {$ENDIF}

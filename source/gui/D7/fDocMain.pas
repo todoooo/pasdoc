@@ -126,6 +126,7 @@ type
     edName: TEdit;
     swShowUses: TCheckBox;
     edValue: TEdit;
+    buClrDoc: TButton;
     procedure FormCreate(Sender: TObject);
     procedure lbOutTypeChange(Sender: TObject);
     procedure lbOutLangChange(Sender: TObject);
@@ -159,6 +160,7 @@ type
     procedure Exit1Click(Sender: TObject);
     procedure tvUnitsClick(Sender: TObject);
     procedure cbRemClick(Sender: TObject);
+    procedure buClrDocClick(Sender: TObject);
   private
     FHasChanged: boolean;
     MisspelledWords: TStringList;
@@ -1563,6 +1565,12 @@ begin
     else
       edRem.Text := SelItem.RawDescription;
   end;
+end;
+
+procedure TDocMain.buClrDocClick(Sender: TObject);
+begin
+  PasDoc_Items.Logger := self.PasDocWarning;
+  PasDoc1.AllUnits.Clear;
 end;
 
 end.

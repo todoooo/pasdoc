@@ -667,11 +667,8 @@ end;
 
 destructor TPasDoc.Destroy;
 begin
-(* Problem: destroying AllUnits gives AV - why?
-*)
   if FDoc = nil then begin //not owned, destroy option objects
     FreeAndNil(Options.Abbreviations);
-    //FreeAndNil(Options.AllUnits);
     FreeAndNil(Options.AutoLinkExclude);
     FreeAndNil(Options.CommentMarkers);
     FreeAndNil(Options.Conclusion);
@@ -683,7 +680,7 @@ begin
     FreeAndNil(Options.Language);
     FreeAndNil(Options.SourceFileNames);
     FreeAndNil(Options.SpellCheckIgnoreWords);
-  //debug how?
+  //debug how? (bug seems to be fixed :-)
     FreeAndNil(Options.AllUnits);
   end;
   inherited;

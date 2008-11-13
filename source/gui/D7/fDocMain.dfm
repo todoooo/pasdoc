@@ -1,7 +1,7 @@
 object DocMain: TDocMain
   Left = 341
   Top = 111
-  Width = 615
+  Width = 618
   Height = 471
   Caption = 'PasDoc GUI'
   Color = clBtnFace
@@ -19,7 +19,7 @@ object DocMain: TDocMain
   object tabPages: TPageControl
     Left = 0
     Top = 0
-    Width = 607
+    Width = 610
     Height = 425
     ActivePage = tabGenerate
     Align = alClient
@@ -27,7 +27,7 @@ object DocMain: TDocMain
     object tabOpts: TTabSheet
       Caption = 'Options'
       DesignSize = (
-        599
+        602
         397)
       object Label2: TLabel
         Left = 8
@@ -81,7 +81,7 @@ object DocMain: TDocMain
       object edTitle: TEdit
         Left = 48
         Top = 40
-        Width = 548
+        Width = 551
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
@@ -211,7 +211,7 @@ object DocMain: TDocMain
       inline edProjectFile: TDirBox
         Left = 0
         Top = 0
-        Width = 599
+        Width = 602
         Height = 29
         Align = alTop
         TabOrder = 9
@@ -221,10 +221,10 @@ object DocMain: TDocMain
         end
         inherited edFile: TEdit
           Left = 48
-          Width = 460
+          Width = 463
         end
         inherited buSelect: TButton
-          Left = 516
+          Left = 519
           Hint = 'Open project'
           OnClick = Open1Click
         end
@@ -236,7 +236,7 @@ object DocMain: TDocMain
         end
       end
       object buSave: TButton
-        Left = 564
+        Left = 567
         Top = 4
         Width = 31
         Height = 21
@@ -294,24 +294,24 @@ object DocMain: TDocMain
       inline lbFiles: TDirList
         Left = 0
         Top = 29
-        Width = 599
+        Width = 602
         Height = 368
         Align = alClient
         TabOrder = 0
         inherited GroupBox1: TGroupBox
-          Width = 599
+          Width = 602
           Height = 368
           Caption = 'Source Files'
           inherited buAddAll: TButton
             OnClick = lbFilesbuAddAllClick
           end
           inherited buRemove: TButton
-            Left = 563
+            Left = 566
             Top = 16
           end
           inherited lbFiles: TListBox
             Top = 63
-            Width = 595
+            Width = 598
             Height = 303
           end
         end
@@ -326,7 +326,7 @@ object DocMain: TDocMain
       inline edRoot: TDirBox
         Left = 0
         Top = 0
-        Width = 599
+        Width = 602
         Height = 29
         Align = alTop
         TabOrder = 1
@@ -336,10 +336,10 @@ object DocMain: TDocMain
         end
         inherited edFile: TEdit
           Left = 88
-          Width = 469
+          Width = 472
         end
         inherited buSelect: TButton
-          Left = 564
+          Left = 567
           OnClick = edRootbuSelectClick
         end
       end
@@ -350,22 +350,22 @@ object DocMain: TDocMain
       inline lbInclude: TDirList
         Left = 0
         Top = 58
-        Width = 599
+        Width = 602
         Height = 339
         Align = alClient
         TabOrder = 0
         inherited GroupBox1: TGroupBox
-          Width = 599
+          Width = 602
           Height = 339
           Caption = 'Include Directories'
           inherited buAddAll: TButton
             OnClick = lbIncludebuAddAllClick
           end
           inherited buRemove: TButton
-            Left = 567
+            Left = 570
           end
           inherited lbFiles: TListBox
-            Width = 595
+            Width = 598
             Height = 287
           end
         end
@@ -376,7 +376,7 @@ object DocMain: TDocMain
       inline edIntro: TDirBox
         Left = 0
         Top = 0
-        Width = 599
+        Width = 602
         Height = 29
         Align = alTop
         TabOrder = 1
@@ -386,10 +386,10 @@ object DocMain: TDocMain
         end
         inherited edFile: TEdit
           Left = 80
-          Width = 477
+          Width = 480
         end
         inherited buSelect: TButton
-          Left = 564
+          Left = 567
         end
         inherited dlgOpen: TOpenDialog
           DefaultExt = 'txt'
@@ -399,7 +399,7 @@ object DocMain: TDocMain
       inline edConclusion: TDirBox
         Left = 0
         Top = 29
-        Width = 599
+        Width = 602
         Height = 29
         Align = alTop
         TabOrder = 2
@@ -409,10 +409,10 @@ object DocMain: TDocMain
         end
         inherited edFile: TEdit
           Left = 80
-          Width = 477
+          Width = 480
         end
         inherited buSelect: TButton
-          Left = 564
+          Left = 567
         end
         inherited dlgOpen: TOpenDialog
           Title = 'Select Conclusion file'
@@ -719,7 +719,7 @@ object DocMain: TDocMain
       object GroupBox7: TGroupBox
         Left = 217
         Top = 0
-        Width = 382
+        Width = 385
         Height = 397
         Align = alClient
         Caption = 'User defined'
@@ -741,7 +741,7 @@ object DocMain: TDocMain
       object GroupBox1: TGroupBox
         Left = 0
         Top = 81
-        Width = 599
+        Width = 602
         Height = 316
         Align = alClient
         Caption = 'Log'
@@ -749,7 +749,7 @@ object DocMain: TDocMain
         object lbLog: TListBox
           Left = 2
           Top = 15
-          Width = 595
+          Width = 598
           Height = 299
           Align = alClient
           ItemHeight = 13
@@ -761,13 +761,13 @@ object DocMain: TDocMain
       object GroupBox4: TGroupBox
         Left = 0
         Top = 0
-        Width = 599
+        Width = 602
         Height = 81
         Align = alTop
         Caption = 'Output Directory'
         TabOrder = 1
         DesignSize = (
-          599
+          602
           81)
         object Label7: TLabel
           Left = 352
@@ -794,11 +794,10 @@ object DocMain: TDocMain
           OnClick = buClearOutputClick
         end
         object buGenerate: TButton
-          Left = 479
+          Left = 477
           Top = 48
           Width = 109
           Height = 25
-          Anchors = [akRight, akBottom]
           Caption = 'Documentation'
           TabOrder = 1
           OnClick = buGenerateClick
@@ -855,11 +854,10 @@ object DocMain: TDocMain
           Text = '2'
         end
         object buAnalyze: TButton
-          Left = 367
+          Left = 365
           Top = 48
           Width = 85
           Height = 25
-          Anchors = [akTop, akRight]
           Caption = 'Analyze'
           TabOrder = 6
           OnClick = buGenerateClick
@@ -872,6 +870,15 @@ object DocMain: TDocMain
           Caption = 'Command file'
           TabOrder = 7
           OnClick = buCmdFileClick
+        end
+        object buClrDoc: TButton
+          Left = 612
+          Top = 48
+          Width = 49
+          Height = 25
+          Caption = 'ClrDoc'
+          TabOrder = 8
+          OnClick = buClrDocClick
         end
       end
     end
@@ -896,14 +903,14 @@ object DocMain: TDocMain
       object Panel1: TPanel
         Left = 244
         Top = 0
-        Width = 355
+        Width = 358
         Height = 397
         Align = alClient
         TabOrder = 1
         object edRem: TMemo
           Left = 1
           Top = 185
-          Width = 353
+          Width = 356
           Height = 211
           Align = alClient
           Lines.Strings = (
@@ -917,29 +924,29 @@ object DocMain: TDocMain
         object GroupBox10: TGroupBox
           Left = 1
           Top = 1
-          Width = 353
+          Width = 356
           Height = 184
           Align = alTop
           Caption = 'Source'
           TabOrder = 1
           DesignSize = (
-            353
+            356
             184)
           object cbRem: TComboBox
             Left = 12
             Top = 72
-            Width = 329
+            Width = 332
             Height = 104
             Style = csSimple
             Anchors = [akLeft, akTop, akRight, akBottom]
-            ItemHeight = 13
+            ItemHeight = 0
             TabOrder = 0
             OnClick = cbRemClick
           end
           object edName: TEdit
             Left = 8
             Top = 16
-            Width = 333
+            Width = 336
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 1
@@ -948,7 +955,7 @@ object DocMain: TDocMain
           object edValue: TEdit
             Left = 8
             Top = 40
-            Width = 333
+            Width = 336
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 2
@@ -1018,8 +1025,10 @@ object DocMain: TDocMain
     ShowVisibilities = []
     SingleCharMarkers = False
     StarStyleOnly = False
+    ItemFiles = False
     NumericFilenames = False
     UseTipueSearch = False
+    Latex2rtf = False
     Left = 492
     Top = 360
   end

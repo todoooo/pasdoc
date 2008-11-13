@@ -19,7 +19,7 @@ unit PasDoc_Items;
 {-$DEFINE DetailedProps}
 {-$DEFINE paragraphs}
 {$DEFINE groups}
-{$DEFINE DbgFree} //-debug destruction?
+{-$DEFINE DbgFree} //-debug destruction?
 
 interface
 
@@ -92,7 +92,6 @@ const
    'hide'
   );
 
-  //AllVisibilities: TVisibilities = [Low(TVisibility) .. High(TVisibility)];
   AllVisibilities: TVisibilities = [viShow..viUses];
   DefaultVisibilities: TVisibilities =
     [viShow, viProtected, viPublic, viPublished, viAutomated];
@@ -462,6 +461,10 @@ type
 
   public
     destructor Destroy; override;
+  {$IFDEF DbgFree}
+    procedure BeforeDestruction; override;
+  {$ELSE}
+  {$ENDIF}
 
     { It registers @link(TTag)s that init @link(Authors),
       @link(Created), @link(LastMod) and remove relevant tags from description.
@@ -644,7 +647,6 @@ type
 
   TPasItem = class(TBaseItem)
   private
-    //FFullDeclaration: string; //trDeclaration?
     FVisibility: TItemVisibility;
 
     procedure HandleDeprecatedTag(ThisTag: TTag; var ThisTagData: TObject;
@@ -673,6 +675,7 @@ type
     FNamePosition: TTextStreamPos;
   // File name with the declaration (may become file object?)
     FNameStream: string;
+  {$IFDEF old}
   (* Ancestor reference, depending on item kind.
     CIOs have a list of ancestors (trHierarchy). The first item is the base class, others are interfaces.
     Units have a list of used units (trUnits).
@@ -682,7 +685,12 @@ type
     This seems to cause problems during destruction!?
   *)
     FHeritage: TDescriptionItem;
-  { Owner shall be the item, of which this item is a member.
+  {$ELSE}
+  //-FHeritage moved into TPasScope
+  //direct reference to ancestor - don't destroy!
+    FInherited: TPasItem;
+  {$ENDIF}
+  { Owner shall be the item of which this item is a member.
     Usage: construct the fully qualified name...
 
     Derived: MyObject (read: MyCio), MyUnit.
@@ -723,11 +731,11 @@ type
     function FindName(const NameParts: TNameParts; index: integer = -1): TPasItem; override;
 
     { pointer to unit this item belongs to }
-    property MyUnit: TPasUnit read GetMyUnit; //- write SetMyUnit;
+    property MyUnit: TPasUnit read GetMyUnit;
 
     { if this item is part of an object or class, the corresponding
       info object is stored here, nil otherwise }
-    property MyObject: TPasCio read GetMyObject;  //- write SetMyObject;
+    property MyObject: TPasCio read GetMyObject;
   //Returns the first ancestor of this item. Override for CIOs
     function FirstAncestorItem: TDescriptionItem; virtual;
 
@@ -919,6 +927,8 @@ type
   //List of all members, for internal use only.
   //Possibly exported as Values (enum...)?
     FMembers: TPasItems;
+  //heritage list
+    FHeritage: TDescriptionItem;
   (* List of special member lists, for internal use only.
     This list contains sublists of selected members.
     The sublists must NOT own the members.
@@ -992,10 +1002,12 @@ type
   end;
 
 
+//Special scopes, having ancestors and output files
+  TPasPrimaryScope = class(TPasScope)
+  end;
+
 //-------------- unused classes ------------------
 
-//Special scopes, having ancestors and output files
-  TPasPrimaryScope = TPasScope;
   { @Name holds a collection of methods. It introduces no
     new methods compared to @link(TPasItems), but this may be
     implemented in a later stage. }
@@ -1505,6 +1517,10 @@ end;
 function IsEmpty(item: TDescriptionItem): boolean; overload;
 function IsEmpty(item: TDescriptionList): boolean; overload;
 
+var
+//For debugging only. To be set by the application.
+  Logger: TPasDocAppMessageEvent;
+
 implementation
 
 uses PasDoc_Utils, Contnrs, StrUtils;
@@ -1522,8 +1538,18 @@ var
 {$IFDEF DbgFree}
 //this is the currently destructed unit. Only it's members can be destroyed.
   UnitUnderDestruction: TPasUnit;
+  UName: string;
 {$ELSE}
 {$ENDIF}
+
+procedure DoLog(const msg: string);
+begin
+{$IFDEF DbgFree}
+  if assigned(Logger) then
+    Logger(pmtInformation, msg, 1);
+{$ELSE}
+{$ENDIF}
+end;
 
 function CompareWeight(PItem1, PItem2: pointer): integer;
 var
@@ -1580,6 +1606,15 @@ begin
   FreeAndNil(FRawDescriptionInfo);
   inherited;
 end;
+
+{$IFDEF DbgFree}
+procedure TBaseItem.BeforeDestruction;
+begin
+  inherited;
+  DoLog('destroy: ' + self.FullLink);
+end;
+{$ELSE}
+{$ENDIF}
 
 function TBaseItem.AutoLinkAllowed: boolean;
 begin
@@ -1985,10 +2020,10 @@ begin
   if MyOwner = nil then begin
   //we are unit
     if self <> UnitUnderDestruction then
-      assert(False, 'bad unit destroy');
+      DoLog('bad unit destroy');
   end else begin
     if MyUnit <> UnitUnderDestruction then
-      assert(False, 'bad PasItem destroy');
+      DoLog('bad PasItem destroy');
   end;
 {$ELSE}
 {$ENDIF}
@@ -2097,7 +2132,11 @@ end;
 function TPasItem.FirstAncestorItem: TDescriptionItem;
 begin
 //this version returns the heritage item, if found during BuildLinks.
+{$IFDEF old}
   Result := FHeritage.PasItem;
+{$ELSE}
+  Result := FInherited;
+{$ENDIF}
 end;
 
 procedure TPasItem.Deserialize(const ASource: TStream);
@@ -2201,7 +2240,7 @@ var
 begin
 (* Try to inherit missing descriptions.
   If either part (abstract/detailed) is empty, retrieve it from ancestor.
-  The ancestor description may not have been built now!
+  The ancestor description may not have been built now!?
 *)
   Result := inherited BuildDescription; //returns FFullDescription only.
   if Result = nil then begin
@@ -2212,13 +2251,13 @@ begin
     det := DetailedDescription;
   end;
 //find descriptions
-  anc := FHeritage.PasItem;
+  anc := FInherited;
   while (anc <> nil) and ((abst = '') or (det = '')) do begin
     if abst = '' then
       abst := anc.AbstractDescription;
     if det = '' then
       det := anc.DetailedDescription;
-    anc := anc.FHeritage.PasItem;
+    anc := anc.FInherited;
   end;
 //exit if nothing found
   if ((abst = '') and (det = '')) then
@@ -2235,14 +2274,13 @@ const
     trUses, //unit only
     trHierarchy,  //classes only
     trParameters, trReturns, trExceptionsRaised, //procedures only
-    trSeeAlso, //before overview, but after procedure lists
+    trSeeAlso, //before overview, but after procedure items
     trOverview, trDescriptions,
     trValues, //enums, constants?
     trAuthors, trCreated, trLastModified
   );
   MemberListSortOrder: array[0..7] of TTranslationID = (
   //units
-    //trClasses, //not here, actually is trCio
     trCio, trFunctionsAndProcedures, trTypes, trVariables, trConstants,
   //CIOs
     trFields, trMethods, trProperties
@@ -2267,6 +2305,7 @@ begin
   if FMembers = nil then
     FMembers := TPasItems.Create(True);
   FMemberLists := TDescriptionItem.Create('', '', trOverview, dkItemList);
+//problem: simple class members only have an inherited ancestor!
   FHeritage := TDescriptionItem.Create('', '', trHierarchy, dkItemList);
     //overwrite in non-CIO classes
 end;
@@ -2274,19 +2313,16 @@ end;
 destructor TPasScope.Destroy;
 begin
   if FHeritage <> nil then begin
-    if FHeritage is TPasItem then
-    //this is the ancestor of an overwritten class member
-      FHeritage := nil  //don't destroy the ancestor item - become delegate???
-    else begin
-    {$IFDEF DbgFree}
+  {$IFDEF DbgFree}
+    DoLog(Name + ': heritage=$' + IntToHex(cardinal(FHeritage), 8));
     { TODO : this destruction causes AV's, immediately or later }
     //most probably the delegates destroy their targets - why?
-      FHeritage := nil; //don't destroy, until the bug is fixed
-      //FreeAndNil(FHeritage); //free the uses/ancestor list
-    {$ELSE}
-      FHeritage := nil; //don't destroy, until the bug is fixed
-    {$ENDIF}
-    end;
+     //FHeritage := nil; //don't destroy, until the bug is fixed
+     FreeAndNil(FHeritage); //free the uses/ancestor list
+  {$ELSE}
+    //FHeritage := nil; //don't destroy, until the bug is fixed
+    FreeAndNil(FHeritage); //seems to be fixed
+  {$ENDIF}
   end;
   FreeAndNil(FMemberLists);
   FreeAndNil(FMembers);
@@ -2476,6 +2512,16 @@ begin
   inherited;
 end;
 
+procedure TBaseItems.Clear;
+begin
+  if Assigned(FHash) then begin
+    // not assigned if destroying
+    FHash.Free;
+    FHash := TObjectHash.Create;
+  end;
+  inherited;
+end;
+
 procedure TBaseItems.Delete(const AIndex: Integer);
 var
   LObj: TBaseItem;
@@ -2499,16 +2545,6 @@ begin
   Result := inherited Add(AObject);
   //FHash.Items[LowerCase(AObject.Name)] := AObject;
   FHash.Objects[LowerCase(AObject.Name)] := AObject;
-end;
-
-procedure TBaseItems.Clear;
-begin
-  if Assigned(FHash) then begin
-    // not assigned if destroying
-    FHash.Free;
-    FHash := TObjectHash.Create;
-  end;
-  inherited;
 end;
 
 procedure TBaseItems.Deserialize(const ASource: TStream);
@@ -2684,8 +2720,13 @@ begin
 //check visibility
   if ord(item.Visibility) = 0 then //just created?
     item.Visibility := CurVisibility;
+{$IFDEF old}
   if not (item.Visibility in ShowVisibilities) then
     exit; //don't add to the specialized (generators) lists
+{$ELSE}
+  if not (item.Visibility in ShowVisibilities) then
+    item.FExclude := True;  //exclude from documentation, not from search...
+{$ENDIF}
 //add to specialized list
   case item.FKind of
   KEY_PROPERTY: Properties.Add(item);
@@ -2707,6 +2748,7 @@ var
   i: integer;
 begin
 (* Group item(s) from the appropriate item group.
+  To make this work, excluded items (by visibility or @exclude) must be listed!
 *)
 //safe way: find containing list
   for i := 0 to MemberLists.Count - 1 do begin
@@ -2830,9 +2872,11 @@ end;
 function TPasCio.FirstAncestorItem: TDescriptionItem;
 begin
 //this version returns the first item (base class) from the heritage list.
-  if IsEmpty(FAncestors) then
-    Result := nil
-  else
+  Result := inherited FirstAncestorItem;
+  if Result <> nil then
+    exit; //found PasItem
+//try get ancestor delegate, usable only for Name
+  if not IsEmpty(FAncestors) then
     Result := FAncestors.ItemAt(0);
 end;
 
@@ -2848,34 +2892,31 @@ begin
 end;
 
 function TPasCio.FindItemInAncestors(const ItemName: string): TPasItem;
-var
-  item: TDescriptionItem;
 begin
 //ancestor also searches in it's ancestor(s) (auto recursion)
-  item := FirstAncestorItem;
-  if item.PasItem = nil then
+  if FInherited = nil then
     Result := nil
   else
-    Result := item.PasItem.FindItem(ItemName).PasItem;
+    Result := FInherited.FindItem(ItemName).PasItem;
 end;
 
 procedure TPasCio.BuildLinks(AllUnits: TPasUnits; TheGenerator: TLinkGenerator);
 var
   i: integer;
   item: TDescriptionItem;
+  found: TDescriptionItem;
   pi: TPasItem;
 
   procedure SearchAncestor;
   var
     iu: integer;
-    found: TDescriptionItem;
   begin
     for iu := 0 to AllUnits.Count - 1 do begin
     //also search in own unit!
       found := AllUnits.UnitAt[iu].CIOs.FindName(item.Name);
       if found <> nil then begin
-        assert(item is TPasDelegate, 'expected delegate in class ancestors');
-        item.PasItem := found.PasItem;
+        FInherited := found.PasItem;
+        item.PasItem := FInherited;
         break;
       end;
     end;
@@ -2900,7 +2941,12 @@ begin //BuildLinks
   for i := 0 to Members.Count - 1 do begin
     pi := Members.PasItemAt[i];
     pi.FFullLink := TheGenerator(pi);
-    pi.FHeritage := FindItemInAncestors(pi.Name); //problem with overloaded ancestors!
+    //pi.FHeritage := FindItemInAncestors(pi.Name); //problem with overloaded ancestors!
+    if pi.FInherited = nil then begin //might be class?
+      found := FindItemInAncestors(pi.Name);
+      if assigned(found) then
+        pi.FInherited := found.PasItem;
+    end;
   end;
 //add non-empty member lists to descriptions
   inherited BuildLinks(AllUnits, TheGenerator);
@@ -2908,26 +2954,25 @@ end;
 
 procedure TPasCio.BuildSections;
 var
-  desc, anc: TDescriptionItem;
+  desc: TDescriptionItem;
+  anc: TPasItem;
 begin
 //hierarchy
   if not IsEmpty(Ancestors) then begin
     desc := AddNew(trHierarchy, dkItemList);
     desc.FList.OwnsObjects := False; //new list type: NoOwnItems?
-    anc := FirstAncestorItem;
+    anc := FInherited;  // FirstAncestorItem;
     while anc <> nil do begin
-      //anc := anc.Items[0];
     //add ancestors in reverse order
       desc.FList.Insert(0, anc);
     //anc is a delegate, we must use anc.PasItem to get the TPasCio from it.
-      if anc.PasItem is TPasCio then
-        anc := TPasCio(anc.PasItem).FirstAncestorItem
+      if anc is TPasCio then
+        anc := anc.FInherited
       else
         break;
     end;
-  //add self as last item
+  //add self as last item. Make delegate to prevent destruction!
     desc.AddNew(ID, dkNoList, Name, Value);
-      //why not: desc.Add(self)?
   end;
   inherited BuildSections; //build overview
 end;
@@ -2955,28 +3000,32 @@ begin
 end;
 
 destructor TPasUnit.Destroy;
-{$IFDEF DbgFree}
-var
-  s: string;
-{$ELSE}
-{$ENDIF}
 begin
+{$IFDEF DbgFree}
   try
-  {$IFDEF DbgFree}
   //debug - set up ourself as "unit under destruction".
-    s := self.Name;
-    assert(UnitUnderDestruction = nil, 'illegal destroy unit');
-    UnitUnderDestruction := self;
-    inherited Destroy;
-    UnitUnderDestruction := nil;
-  {$ELSE}
-    inherited Destroy;
-  {$ENDIF}
+    if UnitUnderDestruction <> nil then begin
+      DoLog('Illegal destroy unit ' + Name + ' from inside ' + UName);
+    end;
+    try
+      UnitUnderDestruction := self;
+      UName := self.Name;
+
+      inherited Destroy;
+    finally
+      DoLog('Done destroy unit ' + Name);
+      UnitUnderDestruction := nil;
+      UName := '';
+    end;
   except
     on E: Exception do begin
       //ShowException(E, nil); //debug here
+      DoLog('Exception in ' + Name + ': ' + e.Message);
     end;
   end;
+{$ELSE}
+  inherited Destroy;
+{$ENDIF}
 end;
 
 procedure TPasUnit.Deserialize(const ASource: TStream);
@@ -3487,7 +3536,7 @@ begin
     finally filters empty lists.
   Sorting must occur elsewhere, depending on the item kind (unit...).
 
-  Also remove excluded items (FExclude).
+  Also remove excluded items (FExclude). Questionable, can break @groupbegin!
 *)
 //the member lists are not yet sorted???
   FMemberLists.SortByID(MemberListSortOrder);
@@ -3500,7 +3549,6 @@ begin
     //top-down, because items can be excluded!
       for j := ml.Count - 1 downto 0 do begin
         ps := ml.PasItemAt(j);
-        //assert(ps <> nil, 'invalid member');
         if ps.FExclude then
           ml.FList.Delete(j)
         else
@@ -4122,6 +4170,7 @@ var
   it: TTranslationID;
   iw, w: integer;
 
+{$IFDEF debug}
   procedure CheckSort;
   var
     i, iLast, iNext: integer;
@@ -4136,6 +4185,8 @@ var
       iLast := iNext;
     end;
   end;
+{$ELSE}
+{$ENDIF}
 
 begin
 (* Create a map array for the given item IDs.
@@ -4163,8 +4214,9 @@ begin
     end;
   end;
   FList.Sort({$IFDEF fpc}@{$ENDIF} CompareWeight);
-//debug
+{$IFDEF debug}
   CheckSort;
+{$ENDIF}
 end;
 
 { TDescriptionList }
@@ -4215,7 +4267,7 @@ var
 begin
   for i := 0 to Count - 1 do begin
     item := ItemAt(i); //optimize?
-    //item := TObjectVector(FList).Items[i] as TDescriptionItem;
+      //item := TObjectVector(FList).Items[i] as TDescriptionItem;
     if CompareText(AName, item.Name) = 0 then begin
       Result := i;
       exit;
@@ -4232,7 +4284,7 @@ var
 begin
   for i := 0 to Count - 1 do begin
     item := ItemAt(i); //optimize?
-    //item := TObjectVector(FList).Items[i] as TDescriptionItem;
+      //item := TObjectVector(FList).Items[i] as TDescriptionItem;
     if item.ID = tid then begin
       Result := i;
       exit;
