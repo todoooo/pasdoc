@@ -29,7 +29,7 @@ uses
   PasDoc_Items,
   PasDoc_Languages,
   PasDoc_StringVector,
-  PasDoc_GenHTML,
+  PasDoc_GenHtml,
   PasDoc_Types;
 
 type
