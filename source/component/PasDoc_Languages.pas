@@ -217,9 +217,11 @@ type
 
 //Full language name
 function LanguageFromIndex(i: integer): string;
+function LanguageFromID(i: TLanguageID): string;
 
 //Language abbreviation
 function SyntaxFromIndex(i: integer): string;
+function SyntaxFromID(i: TLanguageID): string;
 
 //Search for language by short or long name
 function IDfromLanguage(const s: string): TLanguageID;
@@ -1747,15 +1749,15 @@ begin
   FTranslation[trConstants] := 'Константы';
   FTranslation[trCreated] := 'Создано';
   FTranslation[trDeclaration] := 'Объявления';
-  FTranslation[trParameters] := 'Параметры';
+  FTranslation[trParameters] := 'араметры';
   FTranslation[trReturns] := 'Возвращаемые значения';
   FTranslation[trExceptions] := 'Исключения';
   FTranslation[trExceptionsRaised] := 'Вызывает исключения';
-  FTranslation[trEnum] := 'Перечисление';
+  FTranslation[trEnum] := 'еречисление';
   FTranslation[trDescription] := 'Описание';
   FTranslation[trDispInterface] := 'DispInterface';
-  FTranslation[trFields] := 'Поля';
-  FTranslation[trFunctionsAndProcedures] := 'Процедуры и функции';
+  FTranslation[trFields] := 'оля';
+  FTranslation[trFunctionsAndProcedures] := 'роцедуры и функции';
   FTranslation[trHelp] := 'Help';
     // Untranslated to avoid Russian file name for css
   FTranslation[trHierarchy] := 'Иерархия';
@@ -1764,10 +1766,10 @@ begin
   FTranslation[trLegend] := 'Обозначения';
   FTranslation[trMarker] := 'Маркер';
   FTranslation[trVisibility] := 'Зона видимости';
-  FTranslation[trLastModified] := 'Последнее изменение';
+  FTranslation[trLastModified] := 'оследнее изменение';
   FTranslation[trMethods] := 'Методы';
   FTranslation[trName] := 'Имя';
-  FTranslation[trNone] := 'Нет';
+  FTranslation[trNone] := 'ет';
   FTranslation[trObject] := 'Объект';
   FTranslation[trObjects] := 'Объекты';
   FTranslation[trOverview] := 'Обзор';
@@ -1781,12 +1783,12 @@ begin
   FTranslation[trTypes] := 'Типы';
   FTranslation[trUnit] := 'Модуль';
   FTranslation[trUnits] := 'Модули';
-  FTranslation[trVariables] := 'Переменные';
+  FTranslation[trVariables] := 'еременные';
   FTranslation[trGvUses] := 'График зависимости модулей';
   FTranslation[trGvClasses] := 'График иерархии классов';
   FTranslation[trWarningOverwrite] :=
-    'Предупреждение: не редактировать - этот файл создан автоматически и может быть изменён без предупреждения';
-  FTranslation[trWarning] := 'Предупреждение';
+    'редупреждение: не редактировать - этот файл создан автоматически и может быть изменён без предупреждения';
+  FTranslation[trWarning] := 'редупреждение';
   FTranslation[trHeadlineCio] := 'Все классы, интерфейсы и объекты';
   FTranslation[trHeadlineConstants] := 'Все константы';
   FTranslation[trHeadlineFunctionsAndProcedures] := 'Все процедуры и функции';
@@ -1802,7 +1804,7 @@ begin
   FTranslation[trLibrarySpecific] := 'этот символ зависит от библиотеки';
   FTranslation[trIntroduction] := 'Введение';
   FTranslation[trConclusion] := 'Заключение';
-  FTranslation[trSearch] := 'Найти';
+  FTranslation[trSearch] := 'айти';
   FTranslation[trSeeAlso] := 'Материалы по теме';
   FTranslation[trValues] := 'Значение';
   FTranslation[trNoCIOs] := 'Модули не содержат классов, интерфейсов, объектов и записей.';
@@ -1812,7 +1814,7 @@ begin
   FTranslation[trNoConstants] := 'Модули не содержат констант.';
   FTranslation[trNoFunctions] := 'Модули не содержат функции и процедуры.';
   FTranslation[trNoIdentifiers] := 'Модули не содержат ни одного идентификатора.';
-  FTranslation[trProgram] := 'Программа';
+  FTranslation[trProgram] := 'рограмма';
   FTranslation[trUses] := 'L╕ ■√╣ў║ї№vї №■Ї║√°';
 end;
 
@@ -2380,11 +2382,21 @@ begin
   Result := language_array[TLanguageID(i)].Name;
 end;
 
+function LanguageFromID(i: TLanguageID): string;
+begin
+  Result := language_array[i].Name;
+end;
+
 function SyntaxFromIndex(i: integer): string;
 var
   l: TLanguageID absolute i;
 begin
   Result := Language_array[l].Syntax;
+end;
+
+function SyntaxFromID(i: TLanguageID): string;
+begin
+  Result := Language_array[i].Syntax;
 end;
 
 function IDfromLanguage(const s: string): TLanguageID;

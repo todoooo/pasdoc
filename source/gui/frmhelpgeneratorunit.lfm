@@ -5,11 +5,8 @@ object frmHelpGenerator: TfrmHelpGenerator
   Width = 740
   HelpType = htKeyword
   HelpKeyword = 'PasDocGui'
-  HorzScrollBar.Page = 739
-  VertScrollBar.Page = 415
-  ActiveControl = memoMessages
   Caption = 'pasdoc gui'
-  ClientHeight = 416
+  ClientHeight = 427
   ClientWidth = 740
   Font.Height = -16
   Font.Name = 'MS Sans Serif'
@@ -19,19 +16,20 @@ object frmHelpGenerator: TfrmHelpGenerator
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
+  ParentFont = False
   Position = poScreenCenter
   ShowHint = True
+  LCLVersion = '0.9.26'
   object lbNavigation: TListBox
-    Height = 416
+    Height = 427
     Width = 144
     Align = alLeft
     OnClick = lbNavigationClick
     TabOrder = 0
-    TopIndex = -1
   end
   object NotebookMain: TNotebook
     Left = 144
-    Height = 416
+    Height = 427
     Width = 596
     Align = alClient
     PageIndex = 7
@@ -40,7 +38,7 @@ object frmHelpGenerator: TfrmHelpGenerator
     object pageOptions: TPage
       Caption = 'Options'
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object Label1: TLabel
         Left = 282
         Height = 17
@@ -163,14 +161,13 @@ object frmHelpGenerator: TfrmHelpGenerator
         Width = 210
         HelpType = htKeyword
         Anchors = [akTop, akLeft, akRight]
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
         Items.Strings = (
           'HTML'
           'HTML Help Workshop'
           'LaTeX'
           'LaTeX for latex2rtf'
         )
-        MaxLength = 0
+        MaxLength = 65535
         OnChange = comboGenerateFormatChange
         Style = csDropDownList
         TabOrder = 4
@@ -195,8 +192,7 @@ object frmHelpGenerator: TfrmHelpGenerator
         HelpType = htKeyword
         HelpKeyword = 'OutputLanguage'
         Anchors = [akTop, akLeft, akRight]
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 0
+        MaxLength = 65535
         OnChange = comboLanguagesChange
         Style = csDropDownList
         TabOrder = 6
@@ -256,7 +252,7 @@ object frmHelpGenerator: TfrmHelpGenerator
       ChildSizing.TopBottomSpacing = 10
       ChildSizing.VerticalSpacing = 10
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object LabelVisibleMembers: TLabel
         Left = 10
         Height = 37
@@ -336,7 +332,7 @@ object frmHelpGenerator: TfrmHelpGenerator
       ChildSizing.TopBottomSpacing = 10
       ChildSizing.HorizontalSpacing = 10
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object Label3: TLabel
         Left = 8
         Height = 17
@@ -445,7 +441,7 @@ object frmHelpGenerator: TfrmHelpGenerator
     object pageLatexOptions: TPage
       Caption = 'LaTeX Options'
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object Label24: TLabel
         Left = 12
         Height = 17
@@ -489,7 +485,6 @@ object frmHelpGenerator: TfrmHelpGenerator
         Hint = 'If you use graphics in LaTeX, you have to specify '#10'the graphics package in the header for the LaTeX file.'#10'This option allows you to specify which one to use.'
         Top = 126
         Width = 148
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
         Enabled = False
         ItemIndex = 0
         Items.Strings = (
@@ -497,7 +492,7 @@ object frmHelpGenerator: TfrmHelpGenerator
           'PDF'
           'DVI'
         )
-        MaxLength = 0
+        MaxLength = 65535
         OnChange = SomethingChanged
         Style = csDropDownList
         TabOrder = 0
@@ -505,12 +500,12 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object PanelLatexHyphenation: TPanel
         Left = 194
-        Height = 416
+        Height = 420
         Width = 402
         Align = alRight
         BevelOuter = bvNone
         BorderWidth = 10
-        ClientHeight = 416
+        ClientHeight = 420
         ClientWidth = 402
         TabOrder = 2
         object Label17: TLabel
@@ -526,7 +521,7 @@ object frmHelpGenerator: TfrmHelpGenerator
         end
         object memoHyphenatedWords: TMemo
           Left = 10
-          Height = 319
+          Height = 323
           Top = 87
           Width = 382
           Align = alClient
@@ -538,7 +533,7 @@ object frmHelpGenerator: TfrmHelpGenerator
     object pageHeadFoot: TPage
       Caption = 'Header / Footer'
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object PanelHeaderHidden: TPanel
         Height = 179
         Width = 596
@@ -581,13 +576,13 @@ object frmHelpGenerator: TfrmHelpGenerator
         ResizeAnchor = akTop
       end
       object PanelFooterHidden: TPanel
-        Height = 228
+        Height = 232
         Top = 188
         Width = 596
         Align = alClient
         BevelOuter = bvNone
         BorderWidth = 10
-        ClientHeight = 228
+        ClientHeight = 232
         ClientWidth = 596
         TabOrder = 1
         object LabelFooter: TLabel
@@ -603,7 +598,7 @@ object frmHelpGenerator: TfrmHelpGenerator
         end
         object memoFooter: TMemo
           Left = 10
-          Height = 191
+          Height = 195
           Top = 27
           Width = 576
           HelpType = htKeyword
@@ -618,7 +613,7 @@ object frmHelpGenerator: TfrmHelpGenerator
     object pageGraphViz: TPage
       Caption = 'GraphViz'
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object Label22: TLabel
         Left = 14
         Height = 17
@@ -664,7 +659,7 @@ object frmHelpGenerator: TfrmHelpGenerator
     object pageSpellChecking: TPage
       Caption = 'Spell Checking'
       ClientWidth = 596
-      ClientHeight = 416
+      ClientHeight = 420
       object PanelSpellCheckingTop1: TPanel
         Height = 149
         Width = 596
@@ -719,7 +714,7 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object memoSpellCheckingIgnore: TMemo
         Left = 10
-        Height = 247
+        Height = 251
         Top = 159
         Width = 576
         HelpType = htKeyword
@@ -733,13 +728,13 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageMarkers: TPage
       Caption = 'Markers'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 588
+      ClientHeight = 419
       object memoCommentMarkers: TMemo
         Left = 10
-        Height = 241
+        Height = 248
         Top = 161
-        Width = 572
+        Width = 568
         HelpType = htKeyword
         HelpKeyword = 'CommentMarker'
         Align = alClient
@@ -749,20 +744,20 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object PanelMarkers: TPanel
         Height = 151
-        Width = 592
+        Width = 588
         Align = alTop
         BevelOuter = bvNone
         BorderWidth = 10
         ChildSizing.VerticalSpacing = 10
         ClientHeight = 151
-        ClientWidth = 592
+        ClientWidth = 588
         FullRepaint = False
         TabOrder = 1
         object Label18: TLabel
           Left = 10
-          Height = 17
-          Top = 125
-          Width = 572
+          Height = 21
+          Top = 128
+          Width = 568
           HelpType = htKeyword
           Align = alTop
           Caption = 'Special comment markers'
@@ -771,9 +766,9 @@ object frmHelpGenerator: TfrmHelpGenerator
         end
         object rgCommentMarkers: TRadioGroup
           Left = 10
-          Height = 105
+          Height = 108
           Top = 10
-          Width = 572
+          Width = 568
           HelpType = htKeyword
           HelpKeyword = 'CommentMarker'
           Align = alTop
@@ -788,8 +783,8 @@ object frmHelpGenerator: TfrmHelpGenerator
           ChildSizing.ShrinkVertical = crsScaleChilds
           ChildSizing.Layout = cclLeftToRightThenTopToBottom
           ChildSizing.ControlsPerLine = 1
-          ClientHeight = 84
-          ClientWidth = 568
+          ClientHeight = 90
+          ClientWidth = 564
           ItemIndex = 1
           Items.Strings = (
             'Ignore special comment markers'
@@ -803,23 +798,23 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageSourceFiles: TPage
       Caption = 'Source Files'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 596
+      ClientHeight = 420
       object PanelSourceFilesTop: TPanel
         Height = 123
-        Width = 592
+        Width = 596
         Align = alTop
         BevelOuter = bvNone
         BorderWidth = 10
         ClientHeight = 123
-        ClientWidth = 592
+        ClientWidth = 596
         FullRepaint = False
         TabOrder = 1
         object Label8: TLabel
           Left = 10
           Height = 65
           Top = 10
-          Width = 572
+          Width = 576
           HelpType = htKeyword
           Align = alClient
           Caption = 'Add the filenames of source files you wish to include in your project. The directories for each file will be automatically added to the "Include" directories if you use the "Browse" button to add the source files.'
@@ -831,7 +826,7 @@ object frmHelpGenerator: TfrmHelpGenerator
           Left = 10
           Height = 38
           Top = 75
-          Width = 572
+          Width = 576
           Align = alBottom
           AutoSize = True
           BorderSpacing.InnerBorder = 4
@@ -842,9 +837,9 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object memoFiles: TMemo
         Left = 10
-        Height = 269
+        Height = 277
         Top = 133
-        Width = 572
+        Width = 576
         HelpType = htKeyword
         Align = alClient
         BorderSpacing.Around = 10
@@ -856,24 +851,24 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageIncludeDirectories: TPage
       Caption = 'Include Directories'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 596
+      ClientHeight = 420
       object PanelIncludeDirectoriesTop: TPanel
         Height = 85
-        Width = 592
+        Width = 596
         Align = alTop
         AutoSize = True
         BevelOuter = bvNone
         BorderWidth = 10
         ClientHeight = 85
-        ClientWidth = 592
+        ClientWidth = 596
         FullRepaint = False
         TabOrder = 1
         object Label9: TLabel
           Left = 10
           Height = 37
           Top = 10
-          Width = 572
+          Width = 576
           HelpType = htKeyword
           Align = alTop
           Caption = 'The directories where PasDoc can find include files.'#10'(If you use $I, $INCLUDE compiler directives.)'
@@ -885,7 +880,7 @@ object frmHelpGenerator: TfrmHelpGenerator
           Left = 10
           Height = 38
           Top = 47
-          Width = 572
+          Width = 576
           Align = alTop
           AutoSize = True
           BorderSpacing.InnerBorder = 4
@@ -896,9 +891,9 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object memoIncludeDirectories: TMemo
         Left = 10
-        Height = 307
+        Height = 315
         Top = 95
-        Width = 572
+        Width = 576
         HelpType = htKeyword
         HelpKeyword = 'IncludeInSearchPath'
         Align = alClient
@@ -911,13 +906,13 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageDefines: TPage
       Caption = 'Defines'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 596
+      ClientHeight = 420
       object memoDefines: TMemo
         Left = 10
-        Height = 246
+        Height = 254
         Top = 156
-        Width = 572
+        Width = 576
         HelpType = htKeyword
         HelpKeyword = 'ConditionalDefines'
         Align = alClient
@@ -929,20 +924,20 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object PanelDefinesTop: TPanel
         Height = 146
-        Width = 592
+        Width = 596
         Align = alTop
         BevelOuter = bvNone
         BorderWidth = 10
         ChildSizing.VerticalSpacing = 10
         ClientHeight = 146
-        ClientWidth = 592
+        ClientWidth = 596
         FullRepaint = False
         TabOrder = 1
         object Label12: TLabel
           Left = 10
           Height = 37
           Top = 10
-          Width = 572
+          Width = 576
           Align = alTop
           Caption = 'Put here any symbols that you want to have defined at the start, just as if they would be defined by $DEFINE at the beginning of each unit.'
           FocusControl = memoDefines
@@ -953,7 +948,7 @@ object frmHelpGenerator: TfrmHelpGenerator
           Left = 10
           Height = 77
           Top = 57
-          Width = 572
+          Width = 576
           Align = alTop
           Caption = 'Note that your compiler may define some symbols by default (for example, "FPC" by FreePascal, "VER150" by Delphi 7, target OS and architecture like "UNIX", "MSWINDOWS" etc.) --- you may want to define some of these for pasdoc too.'
           ParentColor = False
@@ -963,24 +958,24 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageGenerate: TPage
       Caption = 'Generate'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 596
+      ClientHeight = 420
       object PanelGenerateTop: TPanel
         Height = 127
-        Width = 592
+        Width = 596
         Align = alTop
         Alignment = taLeftJustify
         BevelOuter = bvNone
         BorderWidth = 10
         ClientHeight = 127
-        ClientWidth = 592
+        ClientWidth = 596
         FullRepaint = False
         TabOrder = 1
         object Label10: TLabel
           Left = 10
           Height = 37
           Top = 10
-          Width = 572
+          Width = 576
           HelpType = htKeyword
           Align = alTop
           Caption = 'While generating documentation, messages describing what is happening will appear in the area below.'
@@ -1014,7 +1009,7 @@ object frmHelpGenerator: TfrmHelpGenerator
           Left = 10
           Height = 30
           Top = 87
-          Width = 572
+          Width = 576
           Align = alBottom
           AutoSize = True
           Caption = 'Generate documentation'
@@ -1024,9 +1019,9 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object memoMessages: TMemo
         Left = 10
-        Height = 265
+        Height = 273
         Top = 137
-        Width = 572
+        Width = 576
         HelpType = htKeyword
         Align = alClient
         BorderSpacing.Around = 10
@@ -1036,12 +1031,12 @@ object frmHelpGenerator: TfrmHelpGenerator
     end
     object pageEdit: TPage
       Caption = 'Display Comments'
-      ClientWidth = 592
-      ClientHeight = 412
+      ClientWidth = 596
+      ClientHeight = 420
       object tvUnits: TTreeView
-        Height = 188
+        Height = 196
         Top = 28
-        Width = 592
+        Width = 596
         Align = alClient
         DefaultItemHeight = 18
         TabOrder = 0
@@ -1049,14 +1044,15 @@ object frmHelpGenerator: TfrmHelpGenerator
       end
       object seComment: TSynEdit
         Height = 191
-        Top = 221
-        Width = 592
+        Top = 229
+        Width = 596
         Align = alBottom
         Font.Height = -16
         Font.Name = 'courier'
+        Font.Pitch = fpFixed
         ParentColor = False
+        ParentFont = False
         TabOrder = 1
-        Gutter.CodeFoldingWidth = 14
         Keystrokes = <        
           item
             Command = 3
@@ -1382,40 +1378,20 @@ object frmHelpGenerator: TfrmHelpGenerator
       object Splitter1: TSplitter
         Cursor = crVSplit
         Height = 5
-        Top = 216
-        Width = 592
+        Top = 224
+        Width = 596
         Align = alBottom
         ResizeAnchor = akBottom
       end
       object pnlEditCommentInstructions: TPanel
         Height = 28
-        Width = 592
+        Width = 596
         Align = alTop
         Caption = 'Click on an item in the tree view to see its comment.'
         FullRepaint = False
         TabOrder = 2
       end
     end
-  end
-  object PasDoc1: TPasDoc
-    OnWarning = PasDoc1Warning
-    OnMessage = PasDoc1Warning
-    StarStyleOnly = True
-    CommentMarkers.Strings = (
-      '**'
-      '**'
-    )
-    MarkerOptional = True
-    Generator = HtmlDocGenerator
-    left = 136
-    top = 528
-  end
-  object HtmlDocGenerator: THTMLDocGenerator
-    OnMessage = nil
-    WriteUsesClause = True
-    CSS = 'body { font-family: Verdana,Arial; '#10'  color: black; background-color: white; '#10'  font-size: 12px; }'#10'body.navigationframe { font-family: Verdana,Arial; '#10'  color: white; background-color: #787878; '#10'  font-size: 12px; }'#10#10'img { border:0px; }'#10#10'a:link {color:#C91E0C; text-decoration: none; }'#10'a:visited {color:#7E5C31; text-decoration: none; }'#10'a:hover {text-decoration: underline; }'#10'a:active {text-decoration: underline; }'#10#10'a.navigation:link { color: white; text-decoration: none; font-size: 12px;}'#10'a.navigation:visited { color: white; text-decoration: none; font-size: 12px;}'#10'a.navigation:hover { color: white; font-weight: bold; '#10'  text-decoration: none; font-size: 12px; }'#10'a.navigation:active { color: white; text-decoration: none; font-size: 12px;}'#10#10'a.bold:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'a.bold:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'a.bold:hover {text-decoration: underline; font-weight:bold; }'#10'a.bold:active {text-decoration: underline; font-weight:bold; }'#10#10'a.section {color: green; text-decoration: none; font-weight: bold; }'#10'a.section:hover {color: green; text-decoration: underline; font-weight: bold; }'#10#10'ul.useslist a:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'ul.useslist a:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'ul.useslist a:hover {text-decoration: underline; font-weight:bold; }'#10'ul.useslist a:active {text-decoration: underline; font-weight:bold; }'#10#10'ul.hierarchy { list-style-type:none; }'#10'ul.hierarchylevel { list-style-type:none; }'#10#10'p.unitlink a:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'p.unitlink a:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'p.unitlink a:hover {text-decoration: underline; font-weight:bold; }'#10'p.unitlink a:active {text-decoration: underline; font-weight:bold; }'#10#10'tr.list { background: #FFBF44; }'#10'tr.list2 { background: #FFC982; }'#10'tr.listheader { background: #C91E0C; color: white; }'#10#10'table { border-spacing:2px; padding:4px; width:100%; }'#10#10'table.markerlegend { width:auto; }'#10'table.markerlegend td.legendmarker { text-align:center; }'#10#10'table.sections { background:white; }'#10'table.sections td {background:lightgray; }'#10#10'table.summary td.itemcode { width:100%; }'#10'table.detail td.itemcode { width:100%; }'#10#10'td { vertical-align:top; padding:4px; }'#10#10'td.itemname {white-space:nowrap; }'#10'td.itemunit {white-space:nowrap; }'#10'td.itemdesc { width:100%; }'#10#10'div.nodescription {color:red;}'#10'dl.parameters {;}'#10'dl.parameters dt {color:blue;}'#10'dl.parameters dd {;}'#10#10'/* Style applied to Pascal code in documentation '#10'   (e.g. produced by @longcode tag) } */'#10'span.pascal_string { color: #000080; }'#10'span.pascal_keyword { font-weight: bolder; }'#10'span.pascal_comment { color: #000080; font-style: italic; }'#10'span.pascal_compiler_comment { color: #008000; }'#10'span.pascal_numeric { }'#10'span.pascal_hex { }'#10#10'p.hint_directive { color: red; }'#10#10'input#search_text { }'#10'input#search_submit_button { }'#10#10'acronym.mispelling { background-color: #ffa; }'#10
-    left = 168
-    top = 528
   end
   object OpenDialog1: TOpenDialog
     Title = 'Open existing file'
@@ -1491,15 +1467,5 @@ object frmHelpGenerator: TfrmHelpGenerator
         OnClick = MenuAboutClick
       end
     end
-  end
-  object TexDocGenerator: TTexDocGenerator
-    WriteUsesClause = True
-    left = 200
-    top = 528
-  end
-  object HtmlHelpDocGenerator: THTMLHelpDocGenerator
-    CSS = 'body { font-family: Verdana,Arial; '#10'  color: black; background-color: white; '#10'  font-size: 12px; }'#10'body.navigationframe { font-family: Verdana,Arial; '#10'  color: white; background-color: #787878; '#10'  font-size: 12px; }'#10#10'img { border:0px; }'#10#10'a:link {color:#C91E0C; text-decoration: none; }'#10'a:visited {color:#7E5C31; text-decoration: none; }'#10'a:hover {text-decoration: underline; }'#10'a:active {text-decoration: underline; }'#10#10'a.navigation:link { color: white; text-decoration: none; font-size: 12px;}'#10'a.navigation:visited { color: white; text-decoration: none; font-size: 12px;}'#10'a.navigation:hover { color: white; font-weight: bold; '#10'  text-decoration: none; font-size: 12px; }'#10'a.navigation:active { color: white; text-decoration: none; font-size: 12px;}'#10#10'a.bold:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'a.bold:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'a.bold:hover {text-decoration: underline; font-weight:bold; }'#10'a.bold:active {text-decoration: underline; font-weight:bold; }'#10#10'a.section {color: green; text-decoration: none; font-weight: bold; }'#10'a.section:hover {color: green; text-decoration: underline; font-weight: bold; }'#10#10'ul.useslist a:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'ul.useslist a:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'ul.useslist a:hover {text-decoration: underline; font-weight:bold; }'#10'ul.useslist a:active {text-decoration: underline; font-weight:bold; }'#10#10'ul.hierarchy { list-style-type:none; }'#10'ul.hierarchylevel { list-style-type:none; }'#10#10'p.unitlink a:link {color:#C91E0C; text-decoration: none; font-weight:bold; }'#10'p.unitlink a:visited {color:#7E5C31; text-decoration: none; font-weight:bold; }'#10'p.unitlink a:hover {text-decoration: underline; font-weight:bold; }'#10'p.unitlink a:active {text-decoration: underline; font-weight:bold; }'#10#10'tr.list { background: #FFBF44; }'#10'tr.list2 { background: #FFC982; }'#10'tr.listheader { background: #C91E0C; color: white; }'#10#10'table { border-spacing:2px; padding:4px; width:100%; }'#10#10'table.markerlegend { width:auto; }'#10'table.markerlegend td.legendmarker { text-align:center; }'#10#10'table.sections { background:white; }'#10'table.sections td {background:lightgray; }'#10#10'table.summary td.itemcode { width:100%; }'#10'table.detail td.itemcode { width:100%; }'#10#10'td { vertical-align:top; padding:4px; }'#10#10'td.itemname {white-space:nowrap; }'#10'td.itemunit {white-space:nowrap; }'#10'td.itemdesc { width:100%; }'#10#10'div.nodescription {color:red;}'#10'dl.parameters {;}'#10'dl.parameters dt {color:blue;}'#10'dl.parameters dd {;}'#10#10'/* Style applied to Pascal code in documentation '#10'   (e.g. produced by @longcode tag) } */'#10'span.pascal_string { color: #000080; }'#10'span.pascal_keyword { font-weight: bolder; }'#10'span.pascal_comment { color: #000080; font-style: italic; }'#10'span.pascal_compiler_comment { color: #008000; }'#10'span.pascal_numeric { }'#10'span.pascal_hex { }'#10#10'p.hint_directive { color: red; }'#10#10'input#search_text { }'#10'input#search_submit_button { }'#10#10'acronym.mispelling { background-color: #ffa; }'#10
-    left = 232
-    top = 528
   end
 end

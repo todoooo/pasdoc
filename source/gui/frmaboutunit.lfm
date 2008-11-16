@@ -3,8 +3,6 @@ object frmAbout: TfrmAbout
   Height = 347
   Top = 62
   Width = 408
-  HorzScrollBar.Page = 407
-  VertScrollBar.Page = 346
   ActiveControl = BitBtn1
   Caption = 'About'
   ClientHeight = 347
@@ -12,10 +10,12 @@ object frmAbout: TfrmAbout
   Font.Height = -16
   Font.Name = 'MS Sans Serif'
   OnCreate = frmAboutCreate
+  ParentFont = False
   Position = poMainFormCenter
+  LCLVersion = '0.9.26'
   object LabelTitle: TLabel
     Left = 13
-    Height = 17
+    Height = 25
     Top = 8
     Width = 372
     Alignment = taCenter
@@ -25,12 +25,13 @@ object frmAbout: TfrmAbout
     Font.Name = 'MS Sans Serif'
     Font.Style = [fsBold]
     ParentColor = False
+    ParentFont = False
   end
   object BitBtn1: TBitBtn
-    Left = 323
-    Height = 36
-    Top = 300
-    Width = 70
+    Left = 304
+    Height = 34
+    Top = 302
+    Width = 89
     Anchors = [akRight, akBottom]
     AutoSize = True
     BorderSpacing.InnerBorder = 2
@@ -53,7 +54,7 @@ object frmAbout: TfrmAbout
     Left = 16
     Height = 34
     Top = 270
-    Width = 225
+    Width = 242
     Anchors = [akLeft, akBottom]
     AutoSize = True
     BorderSpacing.InnerBorder = 2

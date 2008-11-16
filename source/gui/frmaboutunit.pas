@@ -56,7 +56,13 @@ var
 
 implementation
 
-uses PasDoc_Base, WWWBrowserRunnerDM;
+uses
+{$IFDEF WIN32}
+  Windows, ShellAPI,
+{$ELSE}
+  WWWBrowserRunnerDM,
+{$ENDIF}
+  PasDoc_Base;
 
 { TfrmAbout }
 
@@ -80,7 +86,13 @@ end;
 
 procedure TfrmAbout.ButtonPasDocURLClick(Sender: TObject);
 begin
+{$IFDEF WIN32}
+      ShellExecute(Self.Handle, 'open',
+        PChar(self.ButtonPasDocURL.Caption), nil, nil,
+        SW_SHOWNORMAL);
+{$ELSE}
   WWWBrowserRunner.RunBrowser((Sender as TButton).Caption);
+{$ENDIF}
 end;
 
 initialization

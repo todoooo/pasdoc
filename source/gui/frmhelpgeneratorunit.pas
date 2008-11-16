@@ -90,7 +90,6 @@ type
     edProjectName: TEdit;
     CssFileNameFileNameEdit1: TFileNameEdit;
     edTitle: TEdit;
-    HtmlHelpDocGenerator: THTMLHelpDocGenerator;
     Label1: TLabel;
     Label10: TLabel;
     Label11: TLabel;
@@ -162,12 +161,6 @@ type
     PanelIncludeDirectoriesTop: TPanel;
     PanelSourceFilesTop: TPanel;
     PanelSpellCheckingTop1: TPanel;
-    // @name is the main workhorse of @classname.  It analyzes the source
-    // code and cooperates with @link(HtmlDocGenerator)
-    // and @link(TexDocGenerator) to create the output.
-    PasDoc1: TPasDoc;
-    // @name generates HTML output.
-    HtmlDocGenerator: THTMLDocGenerator;
     OpenDialog1: TOpenDialog;
     RadioImplicitVisibility: TRadioGroup;
     rgCommentMarkers: TRadioGroup;
@@ -184,8 +177,6 @@ type
     Splitter1: TSplitter;
     seComment: TSynEdit;
     Splitter2: TSplitter;
-    // @name generates Latex output.
-    TexDocGenerator: TTexDocGenerator;
     MenuHelp: TMenuItem;
     tvUnits: TTreeView;
     procedure ButtonURLClick(Sender: TObject);
@@ -262,6 +253,7 @@ type
     procedure SaveSettingsToFile(const FileName: string;
       SetSettingsFileName, ClearChanged: boolean);
   protected
+    PasDoc1: TPasDoc;
     procedure CreateWnd; override;
   public
     // @name is @true when the user has changed the project settings.
@@ -271,7 +263,7 @@ type
     { This is the settings filename (.pds file) that is currently
       opened. You can look at pasdoc_gui as a "program to edit pds files".
       It is '' if current settings are not associated with any filename
-      (because user did not opened any pds file, or he chose "New" menu item). }
+      (because user did not open any pds file, or he chose "New" menu item). }
     property SettingsFileName: string read FSettingsFileName
       write SetSettingsFileName;
       
@@ -293,8 +285,22 @@ var
 
 implementation
 
-uses PasDoc_SortSettings, frmAboutUnit, HelpProcessor,
-  WWWBrowserRunnerDM, PreferencesFrm, PasDocGuiSettings;
+uses
+  PasDoc_SortSettings, frmAboutUnit,
+{$IFDEF help}
+  HelpProcessor,
+  {$IFDEF WIN32}
+    ShellAPI,
+  {$ELSE}
+    WWWBrowserRunnerDM,
+  {$ENDIF}
+{$ELSE}
+  {$IFDEF WIN32}
+    ShellAPI,
+  {$ELSE}
+  {$ENDIF}
+{$ENDIF}
+  PreferencesFrm, PasDocGuiSettings;
 
 procedure TfrmHelpGenerator.PasDoc1Warning(const MessageType: TPasDocMessageType;
   const AMessage: string; const AVerbosity: Cardinal);
@@ -354,7 +360,12 @@ end;
 
 procedure TfrmHelpGenerator.ButtonURLClick(Sender: TObject);
 begin
+{$IFDEF WIN32}
+{ TODO : RunBrowser?
+ }
+{$ELSE}
   WWWBrowserRunner.RunBrowser((Sender as TButton).Caption);
+{$ENDIF}
 end;
 
 procedure TfrmHelpGenerator.FormDestroy(Sender: TObject);
@@ -526,15 +537,14 @@ end;
 function TfrmHelpGenerator.LanguageIdToString(const LanguageID: TLanguageID
   ): string;
 begin
-{$ifdef old}
   try
     result := 'en';
     case LanguageID of
       lgBosnian: result := 'bs';
       lgBrasilian: result := 'pt';  // Portuguese used for brazilian.
       lgCatalan: result := 'ca';
-      lgChinese_950: raise EInvalidSpellingLanguage.Create(
-        'Sorry, that language is not supported for spell checking');
+      {lgChinese_950: raise EInvalidSpellingLanguage.Create(
+        'Sorry, that language is not supported for spell checking'); }
       lgDanish: result := 'da';
       lgDutch: result := 'nl';
       lgEnglish: result := 'en';
@@ -561,9 +571,6 @@ begin
       raise;
     end;
   end;
-{$ELSE}
-  Result := LanguageDescriptor(LanguageID)^.Syntax;
-{$ENDIF}
 end;
 
 procedure TfrmHelpGenerator.SetChanged(const AValue: boolean);
@@ -585,6 +592,9 @@ var
   Index: integer;
   Vis: TVisibility;
 begin
+//create non-published PasDoc component, for now
+  PasDoc1 := TPasDoc.Create(nil);
+
   MisspelledWords:= TStringList.Create;
   MisspelledWords.Sorted := True;
   MisspelledWords.Duplicates := dupIgnore;
@@ -593,7 +603,8 @@ begin
     Ord(High(TLanguageID)) - Ord(Low(TLanguageID)) + 1;
   for LanguageIndex := Low(TLanguageID) to High(TLanguageID) do
   begin
-    comboLanguages.Items.Add(LanguageDescriptor(LanguageIndex)^.Name);
+    //comboLanguages.Items.Add(LANGUAGE_ARRAY[LanguageIndex].Name);
+    comboLanguages.Items.Add(LanguageFromID(LanguageIndex));
   end;
 
   Constraints.MinWidth := Width;
@@ -720,10 +731,10 @@ begin
       tvUnits.Items.AddObject(nil, PasDoc1.IntroductionFileName, PasDoc1.Introduction);
     end;
     AllUnitsNode := tvUnits.Items.AddObject(nil,
-      Lang.Translation[trUnits], PasDoc1.Units);
-    for UnitIndex := 0 to PasDoc1.Units.Count -1 do
+      Lang.Translation[trUnits], PasDoc1.AllUnits);
+    for UnitIndex := 0 to PasDoc1.AllUnits.Count -1 do
     begin
-      UnitItem := PasDoc1.Units.UnitAt[UnitIndex];
+      UnitItem := PasDoc1.AllUnits.UnitAt[UnitIndex];
       UnitNode := tvUnits.Items.AddChildObject(AllUnitsNode,
         UnitItem.SourceFileName, UnitItem);
       if UnitItem.Types.Count > 0 then
@@ -813,7 +824,7 @@ begin
           Lang.Translation[trUses], UnitItem.UsesUnits);
         for UsesIndex := 0 to UnitItem.UsesUnits.Count -1 do
         begin
-          tvUnits.Items.AddChild(UsesNode, UnitItem.UsesUnits[UsesIndex]);
+          tvUnits.Items.AddChild(UsesNode, UnitItem.UsesUnits.ItemAt(UsesIndex).Name);
         end;
       end;
     end;
@@ -845,7 +856,8 @@ begin
   Screen.Cursor := crHourGlass;
   try
     memoMessages.Clear;
-    
+
+  {$IFDEF old}
     case comboGenerateFormat.ItemIndex of
       0: PasDoc1.Generator := HtmlDocGenerator;
       1: PasDoc1.Generator := HtmlHelpDocGenerator;
@@ -856,14 +868,10 @@ begin
 
            TexDocGenerator.LatexHead.Clear;
            if rgLineBreakQuality.ItemIndex = 1 then
-           begin
              TexDocGenerator.LatexHead.Add('\sloppy');
-           end;
-           if memoHyphenatedWords.Lines.Count > 0 then
-           begin
+           if memoHyphenatedWords.Lines.Count > 0 then begin
              TexDocGenerator.LatexHead.Add('\hyphenation{');
-             for Index := 0 to memoHyphenatedWords.Lines.Count -1 do
-             begin
+             for Index := 0 to memoHyphenatedWords.Lines.Count -1 do begin
                TexDocGenerator.LatexHead.Add(memoHyphenatedWords.Lines[Index]);
              end;
              TexDocGenerator.LatexHead.Add('}');
@@ -889,12 +897,41 @@ begin
          end;
     else
       Assert(False);
+    end; //case
+  {$ELSE}
+    PasDoc1.LatexHead.Clear;
+    if rgLineBreakQuality.ItemIndex = 1 then
+     PasDoc1.LatexHead.Add('\sloppy');
+    if memoHyphenatedWords.Lines.Count > 0 then begin
+     PasDoc1.LatexHead.Add('\hyphenation{');
+     for Index := 0 to memoHyphenatedWords.Lines.Count -1 do begin
+       PasDoc1.LatexHead.Add(memoHyphenatedWords.Lines[Index]);
+     end;
+     PasDoc1.LatexHead.Add('}');
     end;
-    
-    PasDoc1.Generator.Language := TLanguageID(comboLanguages.ItemIndex);
 
-    if PasDoc1.Generator is TGenericHTMLDocGenerator then
-    begin
+    case comboLatexGraphicsPackage.ItemIndex of
+    0: // none
+      begin
+        // do nothing
+      end;
+    1: // PDF
+      begin
+        PasDoc1.LatexHead.Add('\usepackage[pdftex]{graphicx}');
+      end;
+    2: // DVI
+      begin
+        PasDoc1.LatexHead.Add('\usepackage[dvips]{graphicx}');
+      end;
+    else
+      Assert(False, 'unknown graphics package');
+    end;
+  {$ENDIF}
+
+    PasDoc1.LanguageID := TLanguageID(comboLanguages.ItemIndex);
+
+  {$IFDEF old}
+    if PasDoc1.Generator is TGenericHTMLDocGenerator then begin
       TGenericHTMLDocGenerator(PasDoc1.Generator).Header := memoHeader.Lines.Text;
       TGenericHTMLDocGenerator(PasDoc1.Generator).Footer := memoFooter.Lines.Text;
       
@@ -907,21 +944,36 @@ begin
         CheckUseTipueSearch.Checked;
       TGenericHTMLDocGenerator(PasDoc1.Generator).AspellLanguage := LanguageIdToString(TLanguageID(comboLanguages.ItemIndex));
       TGenericHTMLDocGenerator(PasDoc1.Generator).CheckSpelling := cbCheckSpelling.Checked;
-      if cbCheckSpelling.Checked then
-      begin
+      if cbCheckSpelling.Checked then begin
         TGenericHTMLDocGenerator(PasDoc1.Generator).SpellCheckIgnoreWords.Assign(memoSpellCheckingIgnore.Lines);
       end;
     end;
+  {$ELSE}
+    PasDoc1.Header := memoHeader.Lines.Text;
+    PasDoc1.Footer := memoFooter.Lines.Text;
+
+    if EditCssFileName.FileName <> '' then
+      PasDoc1.CSS :=
+        FileToString(EditCssFileName.FileName) else
+      PasDoc1.CSS := DefaultPasDocCss;
+
+    PasDoc1.UseTipueSearch := CheckUseTipueSearch.Checked;
+    PasDoc1.AspellLanguage := LanguageIdToString(TLanguageID(comboLanguages.ItemIndex));
+    PasDoc1.CheckSpelling := cbCheckSpelling.Checked;
+    if cbCheckSpelling.Checked then begin
+      PasDoc1.SpellCheckIgnoreWords.Assign(memoSpellCheckingIgnore.Lines);
+    end;
+  {$ENDIF}
 
     // Create the output directory if it does not exist.
     if not DirectoryExists(edOutput.Directory) then
     begin
       CreateDir(edOutput.Directory)
     end;
-    PasDoc1.Generator.DestinationDirectory := edOutput.Directory;
+    PasDoc1.DestinationDirectory := edOutput.Directory;
     
-    PasDoc1.Generator.WriteUsesClause := CheckWriteUsesList.Checked;
-    PasDoc1.Generator.AutoAbstract := CheckAutoAbstract.Checked;
+    PasDoc1.WriteUsesClause := CheckWriteUsesList.Checked;
+    PasDoc1.AutoAbstract := CheckAutoAbstract.Checked;
     PasDoc1.AutoLink := CheckAutoLink.Checked;
     PasDoc1.HandleMacros := CheckHandleMacros.Checked;
     
@@ -990,21 +1042,21 @@ begin
     end;
     
     if cbVizGraphClasses.Checked then begin
-      PasDoc1.Generator.OutputGraphVizClassHierarchy := True;
-      PasDoc1.Generator.LinkGraphVizClasses := VizGraphImageExtension;
+      PasDoc1.OutputGraphVizClassHierarchy := True;
+      PasDoc1.LinkGraphVizClasses := VizGraphImageExtension;
     end
     else begin
-      PasDoc1.Generator.OutputGraphVizClassHierarchy := False;
-      PasDoc1.Generator.LinkGraphVizClasses := '';
+      PasDoc1.OutputGraphVizClassHierarchy := False;
+      PasDoc1.LinkGraphVizClasses := '';
     end;
     
     if cbVizGraphUses.Checked then begin
-      PasDoc1.Generator.OutputGraphVizUses := True;
-      PasDoc1.Generator.LinkGraphVizUses := VizGraphImageExtension;
+      PasDoc1.OutputGraphVizUses := True;
+      PasDoc1.LinkGraphVizUses := VizGraphImageExtension;
     end
     else begin
-      PasDoc1.Generator.OutputGraphVizUses := False;
-      PasDoc1.Generator.LinkGraphVizUses := '';
+      PasDoc1.OutputGraphVizUses := False;
+      PasDoc1.LinkGraphVizUses := '';
     end;
     
     Assert(Ord(High(TSortSetting)) = clbSorting.Items.Count -1);
@@ -1035,9 +1087,22 @@ begin
         [mbOK], 0);
     end;
 
+  {$IFDEF old}
     if PasDoc1.Generator is TGenericHTMLDocGenerator then
       WWWBrowserRunner.RunBrowser(
         HtmlDocGenerator.DestinationDirectory + 'index.html');
+  {$ELSE}
+    if PasDoc1.MasterFile <> '' then begin
+    {$IFDEF WIN32}
+      ShellExecute(Self.Handle, 'open',
+        PChar(PasDoc1.MasterFile), nil, nil,
+        SW_SHOWNORMAL);
+    {$ELSE}
+      WWWBrowserRunner.RunBrowser(
+        HtmlDocGenerator.DestinationDirectory + 'index.html');
+    {$ENDIF}
+    end;
+  {$ENDIF}
   finally
     Screen.Cursor := crDefault;
   end;
@@ -1174,7 +1239,8 @@ begin
         is not recognized. }
         
       LanguageSyntax := Ini.ReadString('Main', 'Language',
-        LANGUAGE_ARRAY[DEFAULT_LANGUAGE].Syntax);
+        //LANGUAGE_ARRAY[DEFAULT_LANGUAGE].Syntax);
+        SyntaxFromID(lgDefault));
       if not LanguageFromStr(LanguageSyntax, LanguageId) then
         LanguageId := DEFAULT_LANGUAGE;
       comboLanguages.ItemIndex := Ord(LanguageId);
@@ -1301,7 +1367,8 @@ begin
     Ini.WriteBool('Main', 'StoreRelativePaths', CheckStoreRelativePaths.Checked);
 
     Ini.WriteString('Main', 'Language',
-      LANGUAGE_ARRAY[TLanguageID(comboLanguages.ItemIndex)].Syntax);
+      //LANGUAGE_ARRAY[TLanguageID(comboLanguages.ItemIndex)].Syntax);
+      SyntaxFromIndex(comboLanguages.ItemIndex));
     Ini.WriteString('Main', 'OutputDir', CorrectFileName(edOutput.Directory));
     Ini.WriteInteger('Main', 'GenerateFormat', comboGenerateFormat.ItemIndex);
     Ini.WriteString('Main', 'ProjectName', edProjectName.Text);
@@ -1471,6 +1538,7 @@ procedure TfrmHelpGenerator.MenuContextHelpClick(Sender: TObject);
 var
   HelpControl: TControl;
 begin
+{$IFDEF help}
   HelpControl := nil;
   if (Sender is TMenuItem) or (Sender = lbNavigation) then
   begin
@@ -1488,6 +1556,8 @@ begin
     WWWBrowserRunner.RunBrowser(
       WWWHelpServer + HelpControl.HelpKeyword);
   end;
+{$ELSE}
+{$ENDIF}
 end;
 
 procedure TfrmHelpGenerator.MenuGenerateRunClick(Sender: TObject);
@@ -1526,6 +1596,7 @@ end;
 procedure TfrmHelpGenerator.tvUnitsClick(Sender: TObject);
 var
   Item: TBaseItem;
+  raw: TToken;
 begin
   seComment.Lines.Clear;
   seComment.Hint := '';
@@ -1535,11 +1606,21 @@ begin
     begin
       Item := TBaseItem(tvUnits.Selected.Data);
       seComment.Lines.Text := Item.RawDescription;
-      seComment.Hint := Format(
-        'Comment in stream "%s", on position %d - %d',
-        [ Item.RawDescriptionInfo.StreamName,
-          Item.RawDescriptionInfo.BeginPosition,
-          Item.RawDescriptionInfo.EndPosition ]);
+      raw := Item.FirstDescription;
+      if assigned(raw) and (raw.StreamName <> '') then
+      {$IFDEF old}
+        seComment.Hint := Format(
+          'Comment in stream "%s", on position %d - %d',
+          [ Item.RawDescriptionInfo.StreamName,
+            Item.RawDescriptionInfo.BeginPosition,
+            Item.RawDescriptionInfo.EndPosition ]);
+      {$ELSE}
+        seComment.Hint := Format(
+          'Comment in stream "%s", on position %d - %d',
+          [ raw.StreamName,
+            raw.BeginPosition,
+            raw.EndPosition ]);
+      {$ENDIF}
     end;
   end;
 end;
