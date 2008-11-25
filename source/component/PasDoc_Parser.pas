@@ -125,22 +125,9 @@ type
     Recorder: string;
     PrevRecordSize: integer;
 
-    { Reads tokens and throws them away as long as they are either whitespace
-      or comments.
-
-      Sets WhitespaceCollector to all the whitespace that was skipped.
-      (Does @italic(not) append them to WhitespaceCollector,
-      it @italic(sets) WhitespaceCollector to them, deleting previous
-      WhitespaceCollector value.)
-
-      Comments are collected to [Is]LastCommentXxx properties, so that you can
-      use GetLastComment.
+    { Reads scanner tokens, recording and skipping whitespace and comments.
 
       Returns non-white token that was found.
-      This token is equal to @code(Scanner.PeekToken).
-      Note that this token was @italic(peeked)
-      from the stream, i.e. the caller is still responsible for doing
-      @code(Scanner.ConsumeToken).
       Calling this method twice in a row will return the same thing.
 
       Always returns something non-nil (will raise exception in case
@@ -216,7 +203,7 @@ type
     function CreateItem(AClass: TPasItemClass; tt: TTokenType; Ident: TToken): TPasItem;
 
   (* Parse an identifier list, create an item for every identifier.
-    Return the first of these items, the last is stored in DeclLast.
+    Return the first of these items, the last one is stored in DeclLast.
   *)
     function ParseVarList: TPasItem;
 
@@ -232,46 +219,30 @@ type
     { Read all tokens until you find a semicolon at brace-level 0 and
       end-level (between "record" and "end" keywords) also 0.
 
-      Alternatively, also stops before reading "end" without beginning
+      Also stops before reading "end" without beginning
       "record" (so it can handle some cases where declaration doesn't end
       with semicolon).
 
-      Alternatively, only if IsInRecordCase, also stops before reading
-      ')' without matching '('. That's because fields' declarations
+      Also stops before reading ')' without matching '('.
+      That's because fields' declarations
       inside record case may be terminated by just ')' indicating
       that this case clause terminates, without a semicolon.
 
-      If you pass Item <> nil then all read data will be
-      appended to Item.FullDeclaration. Also Item.IsLibrarySpecific,
-      Item.IsPlatformSpecific and Item.IsDeprecated will be set to true
-      if appropriate hint directive will occur in source file. }
+      If you pass CurItem <> nil then all read data will be
+      appended to Item.FullDeclaration, and directives will be added to the
+      item attributes. }
     procedure SkipDeclaration(fSkipNext: boolean; CurItem: TPasItem);
 
     { Parses a constructor, a destructor, a function or a procedure
       or an operator (for FPC).
-      Resulting @link(TPasMethod) item will be returned in M.
+      Resulting @link(TPasMethod) item will be returned.
 
-      ClassKeywordString contains the keyword 'class'
-      in the exact spelling as it was found in input,
-      for class methods. Else it contains ''.
-
-      MethodTypeString contains the keyword 'constructor', 'destructor',
-      'function' or 'procedure' or standard directive 'operator'
-      in the exact spelling as it was found in input.
-      You can specify MethodTypeString = '', this way you avoid including
-      such keyword at the beginning of returned M.FullDeclaration.
-
-      MethodType is used for the What field of the resulting TPasMethod.
-      This should correspond to MethodTypeString.
-
-      D may contain a description or nil. }
+      MethodType is used for the What field of the resulting TPasMethod. }
     function  ParseCDFP(MethodType: TTokenType; Ident: TToken): TPasMethod;
 
-    { Parses a class, an interface or an object.
-      U is the unit this item will be added to on success.
-      N is the name of this item.
-      CIOType describes if item is class, interface or object.
-      D may contain a description or nil. }
+    { Parses an structured type, e.g. class or record.
+      CIOType is the according declaration token type.
+      IsInRecordCase cares for special (nested) record declaration. }
       function ParseCIO(Ident: TToken; CIOType: TTokenType;
         const IsInRecordCase: boolean): TPasCio;
 
@@ -313,17 +284,13 @@ type
     "-" cmIgnore - the comment is ignored.
     "<" cmBack - the comment is a back-comment, on the preceding item.
     ">" cmFwd - the comment is a forward comment, on the following item.
-    "[" cmBegin - starts an block comment, applied to all following items, until
-    "]" cmEnd - the block is terminated.
-    "*" and "/" invert the direction of the comment.
     These marker characters are removed from the description text.
 
+    Not implemented, should become a different option:
     Unmarked comments are ignored, unless markers are optional. In this case
     the direction of the comment is determined by the comment style:
     Pascal comments become forward comments,
     C-style comments become back-comments.
-    The "*" and "/" markers invert that direction.
-    This is only a compatibility hack, better use ">" and "<" markers instead.
   *)
     SingleCharMarkers: boolean;
   {$IFDEF old}
@@ -353,14 +320,14 @@ type
   {$IFDEF old}
     property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
     property CommentMarkers: TStringList read FCommentMarkers write SetCommentMarkers;
+  //if this is ever needed... (ShowVisibilities was moved into PasDoc_items)
+    class function ShowVisibilities: TVisibilities;
   {$ELSE}
   //refers to the global CommentMarkers option.
     property CommentMarkers: TStringList read FCommentMarkers write FCommentMarkers;
   {$ENDIF}
     property MarkersOptional: boolean read fMarkersOptional write fMarkersOptional;
     property IgnoreLeading: string read FIgnoreLeading write FIgnoreLeading;
-  //if this is ever needed... (ShowVisibilities was moved into PasDoc_items)
-    class function ShowVisibilities: TVisibilities;
 
     { See command-line option @--implicit-visibility documentation at
       [http://pasdoc.sipsolutions.net/ImplicitVisibilityOption] }
@@ -452,7 +419,7 @@ begin
   Peeked.Free;
   Token.Free;
   Identifier.Free;
-  CancelComments;
+  CancelComments; //move to the begin?
   inherited;
 end;
 
@@ -1747,11 +1714,17 @@ end;
 { ---------------------------------------------------------------------------- }
 
 procedure TParser.ParseUses(const U: TPasUnit);
+var
+  item: TPasItem;
 begin
 (* USES qualid { "," qualid } ";"
 qualid (here)
   ident { "." ident } [ IN string ]
 *)
+
+//flush back rems?
+  FlushBackRems(DeclLast, Token);
+{$IFDEF old}
   { Parsing uses clause clears the comment, otherwise
     - normal comments before "uses" clause would be assigned to normal unit
       items (like a procedure), which is quite unexpected
@@ -1759,17 +1732,24 @@ qualid (here)
     - analogously, back comments after "uses" clause would be assigned to the unit
       description (see ok_comment_over_uses_clause_2.pas testcase).
 
-    Unfortunately used units are NOT PasItems, cannot have comments :-(
+    New TPasUsed can receive comments!
   }
-//flush back rems?
-  FlushBackRems(DeclLast, Token);
   CancelComments;
-  //LastCommentMark := cmNoRem; //IsLastComment := false;
-  //ItemsForNextBackComment.Clear;
+{$ELSE}
+(* New approach: Uses become TPasItems (TPasUsed), so that comments
+  have valid targets.
+  FullDeclaration is set to the full declaration, including file specifiers.
+*)
+{$ENDIF}
 
   repeat
+  {$IFDEF old}
     U.UsesUnits.AddNew(trNoTrans, dkDelegate, QualId(True).Data);
       //trUnit?
+  {$ELSE}
+    Recorder := ''; //skip "uses" and commas
+    item := CreateItem(TPasUsed, KEY_UNIT, nil);
+  {$ENDIF}
 
     if Skip(KEY_IN) then begin
     { Below we just ignore the value of next string token.
@@ -1786,6 +1766,7 @@ qualid (here)
     }
       Expect(TOK_STRING);
     end;
+    item.FullDeclaration := Trim(Recorded); //trim?
   until not Skip(SYM_COMMA);
   Expect(SYM_SEMICOLON);
 end;
@@ -1845,11 +1826,15 @@ Take into account (nesting level) embedded:
         TOK_IDENTIFIER:
           case Peeked.Directive of
           //general modifiers?
-          SD_NEAR, SD_FAR: ;
+          SD_NEAR, SD_FAR: ; //ignore
           //procedure modifiers
           SD_CDECL, //SD_INLINE,
           SD_PASCAL, SD_REGISTER, SD_SAFECALL, SD_STDCALL, SD_VARARGS:
-            GetNextToken; //directive, wait for next ";"
+            begin //set attribute
+              if Assigned(CurItem) then
+                CurItem.HasAttribute[Token.Directive] := true;
+              GetNextToken; //directive, wait for next ";"
+            end;
           else //case directive
             break; // Dec(Level);
           end;
@@ -1861,7 +1846,7 @@ Take into account (nesting level) embedded:
     KEY_CLASS, KEY_INTERFACE, KEY_DISPINTERFACE, KEY_OBJECT,
     KEY_RECORD: Inc(Level);
     KEY_LIBRARY: if Assigned(CurItem) then //CurItem.IsLibrarySpecific := true;
-      CurItem.HasAttribute[SD_LIBRARY_] := True;
+      CurItem.HasAttribute[SD_LIBRARY_] := True; //translate keyword into pseudo directive
     TOK_IDENTIFIER:
       case Token.Directive of
       SD_PLATFORM,
@@ -1895,9 +1880,12 @@ begin
   end;  //until false;
 end;
 
+{$IFDEF old}
 class function TParser.ShowVisibilities: TVisibilities;
 begin
   Result := PasDoc_items.ShowVisibilities;
 end;
+{$ELSE}
+{$ENDIF}
 
 end.

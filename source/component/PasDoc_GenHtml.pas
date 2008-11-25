@@ -90,13 +90,6 @@ type
     function FormatHeading(HL: integer; const CssClass: string;
       const s: string; const AnchorName: string): string;
 
-  {$IFDEF old}
-    { Writes dates Created and LastMod at heading level HL to output
-      (if at least one the two has a value assigned). }
-    procedure WriteDates(const HL: integer; Created, LastMod: TDescriptionItem);
-  {$ELSE}
-  {$ENDIF}
-
     procedure WriteStartOfDocument(AName: string);
     { Starts an HTML paragraph element by writing an opening P tag. }
     procedure WriteStartOfParagraph; overload;
@@ -142,64 +135,13 @@ type
       HeadingLevel: Integer;
       const SectionAnchor: string; SectionName: TTranslationId);
 
-  {$IFDEF old}
-    procedure WriteItemsDetailed(Items: TPasItems; ShowVisibility: boolean;
-      HeadingLevel: Integer; SectionName: TTranslationId);
-
-    { Writes the Item's short description.
-      This is either the explicit AbstractDescription (@@abstract)
-      or the (abbreviated) DetailedDescription. }
-    procedure WriteItemShortDescription(const AItem: TPasItem);
-
-    (*Writes the Item's AbstractDescription followed by DetailedDescription.
-      Include further descriptions, depening on item kind (parameters...).
-
-      If OpenCloseParagraph then code here will open and close paragraph
-      for itself. So you shouldn't
-      surround it inside WriteStart/EndOfParagraph, like
-      @longcode(#
-        { BAD EXAMPLE }
-        WriteStartOfParagraph;
-        WriteItemLongDescription(Item, true);
-        WriteEndOfParagraph;
-      #)
-
-      While you can pass OpenCloseParagraph = @false, do it with caution,
-      and note that long description has often such large content that it
-      really should be separated by paragraph. Passing
-      OpenCloseParagraph = @false is sensible only if you will wrap this
-      anyway inside some paragraph or similar block level element.
-    *)
-    procedure WriteItemLongDescription(const AItem: TPasItem;
-      OpenCloseParagraph: boolean = true);
-
-    { Writes a single class, interface or object CIO to output, at heading
-      level HL. }
-    procedure WriteCIO(HL: integer; const CIO: TPasCio);
-
-    procedure WriteCIOSummary(HL: integer; c: TPasItems);
-  {$ELSE}
-  {$ENDIF}
-
   //-write files
-  {$IFDEF old}
-    procedure WriteOverviewFiles;
-  {$ELSE}
-  {$ENDIF}
     { output all the necessary images }
     procedure WriteBinaryFiles;
     { output the index.html and navigation.html files }
     procedure WriteFramesetFiles;
     { write the legend file for visibility markers }
     procedure WriteVisibilityLegendFile;
-  {$IFDEF old}
-    { Calls @link(WriteCIO) with each element in the argument collection C,
-      using heading level HL. }
-    procedure WriteCIOs(HL: integer; c: TPasItems);
-    //override inherited global entry point
-    procedure WriteUnit(const HL: integer; const U: TPasUnit); override;
-  {$ELSE}
-  {$ENDIF}
 
   protected
   //-override inherited
@@ -251,12 +193,6 @@ type
       in Html. }
     function CodeString(const s: string): string; override;
 
-  {$IFDEF old}
-    { Returns a link to an anchor within a document.
-      HTML simply concatenates the strings with a "#" character between them. }
-    function  CreateLink(const Item: TBaseItem): string; override;
-  {$ELSE}
-  {$ENDIF}
   // Create file name from qualified item name.
     function  NewLink(const AFullName: string): string;
 
@@ -271,12 +207,6 @@ type
     function LineBreak: string; override;
 
     function URLLink(const URL: string): string; override;
-
-  {$IFDEF old}
-    procedure WriteExternalCore(const ExternalItem: TExternalItem;
-      const Id: TTranslationID); override;
-  {$ELSE}
-  {$ENDIF}
 
     function MakeItemLink(const Item: TBaseItem;
       const LinkCaption: string;
@@ -306,13 +236,6 @@ type
 
     { Returns HTML file extension ".html". }
     function GetFileExtension: string; override;
-
-  {$IFDEF old}
-    { The method that does everything - writes documentation for all units
-      and creates overview files. }
-    procedure WriteDocumentation; override;
-  {$ELSE}
-  {$ENDIF}
   end;
 
   { This is the old TGenericHTMLDocGenerator. }
@@ -1559,7 +1482,11 @@ begin //WriteCIO
   if not ObjectVectorIsNilOrEmpty(CIO.Properties) then
     Include(SectionsAvailable, dsProperties);
 
+{$IFDEF old}
   s := GetCIOTypeName(CIO.MyType) + ' ' + CIO.Name;
+{$ELSE}
+  s := CIO.ShortDeclaration;
+{$ENDIF}
 
   WriteStartOfDocument(CIO.MyUnit.Name + ': ' + s);
 
@@ -1690,9 +1617,14 @@ begin
     WriteStartOfTableRow('');
     { name of class/interface/object and unit }
     WriteStartOfTableCell('itemname');
+  {$IFDEF old}
     WriteConverted(GetCIOTypeName(p.MyType));
     WriteDirect('&nbsp;');
     WriteLink(p.FullLink, CodeString(p.Name), 'bold');
+  {$ELSE}
+    //WriteConverted(p.ShortDeclaration);
+    WriteLink(p.FullLink, p.ShortDeclaration, 'bold');
+  {$ENDIF}
     WriteEndOfTableCell;
 
     { Description of class/interface/object }
@@ -2233,7 +2165,7 @@ const
       WriteDirect('<ul class="useslist">');
       for i := 0 to U.UsesUnits.Count-1 do begin
         WriteDirect('<li>');
-        ULink := u.UsesUnits.PasItemAt(i);
+        ULink := u.UsesUnits.PasItemAt[i];
         if ULink <> nil then begin
           WriteLink(ULink.FullLink, U.UsesUnits.Items[i].Name, '');
         end else begin

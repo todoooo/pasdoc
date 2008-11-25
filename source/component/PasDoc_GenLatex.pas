@@ -444,8 +444,12 @@ begin
 
   if SectionsAvailable = [] then exit;
 
+{$IFDEF old}
   WriteHeading(HL+1,CIO.Name+' '+ConvertString(GETCIOTypeName(CIO.MyType))
     + ConvertString(GetClassDirectiveName(CIO.ClassDirective)));
+{$ELSE}
+  WriteHeading(HL+1, ConvertString(CIO.ShortDeclaration));
+{$ENDIF}
   WriteAnchor(CIO.Name,CIO.FullLink);
 
   if dsHierarchy in SectionsAvailable then begin
@@ -775,22 +779,23 @@ begin
 
   WriteDirect('\begin{description}',true);
 
-  for i := 0 to Items.Count - 1 do 
-  begin
+  for i := 0 to Items.Count - 1 do begin
     Item := Items.PasItemAt[i];
-    
+
     WriteDirect('\item[\texttt{');
-    
-    if Item is TPasCio then
-    begin
+
+  {$IFDEF old}
+    if Item is TPasCio then begin
       WriteDirect(CodeString(ConvertString(Item.Name)));
       WriteDirect(' ');
       WriteConverted(GETCIOTypeName(TPasCio(Item).MyType));
-    end else
-    begin
+    end else begin
       WriteConverted(Item.Name);
     end;
-    
+  {$ELSE}
+    WriteConverted(Item.ShortDeclaration);
+  {$ENDIF}
+
     WriteDirect('}]');
     
     WriteSpellChecked(Item.AbstractDescription);
@@ -1354,7 +1359,7 @@ procedure TTexDocGenerator.WriteUnit(const HL: integer; const U: TPasUnit);
       {$IFDEF old}
         ULink := TPasUnit(U.UsesUnits.Objects[i]);
       {$ELSE}
-        ULink := U.UsesUnits.PasItemAt(i);
+        ULink := U.UsesUnits.PasItemAt[i];
       {$ENDIF}
         if ULink <> nil then begin
           //WriteDirect(MakeItemLink(ULink, U.UsesUnits[i], lcNormal));

@@ -336,9 +336,13 @@ begin
     WriteStartOfTableRow('');
     { name of class/interface/object and unit }
     WriteStartOfTableCell('itemname');
+  {$IFDEF old}
     WriteConverted(GetCIOTypeName(p.MyType));
     WriteDirect('&nbsp;');
     WriteLink(p.FullLink, CodeString(p.Name), 'bold');
+  {$ELSE}
+    WriteLink(p.FullLink, CodeString(p.ShortDeclaration), 'bold');
+  {$ENDIF}
     WriteEndOfTableCell;
 
     { Description of class/interface/object }
@@ -364,10 +368,11 @@ begin
   end;
 end;
 
-procedure TFullHTMLDocGenerator.WriteMemberSummary(Items: TDescriptionItem; ShowVisibility: boolean;
-      HL: Integer);
+procedure TFullHTMLDocGenerator.WriteMemberSummary(Items: TDescriptionItem;
+  ShowVisibility: boolean; HL: Integer);
 var
   i: Integer;
+  item: TPasItem;
 begin
 (* Prepare for named member lists:
   - have no anchors (?)
@@ -377,12 +382,51 @@ begin
 
   WriteAnchor(GetSectionAnchor(Items));
   WriteHeading(HL + 1, 'summary', GetMemberSectionHeading(Items));
-  WriteStartOfTable1Column('summary');
 
-  for i := 0 to Items.Count - 1 do
-    WriteItemTableRow(Items.PasItemAt(i), ShowVisibility, true, false);
+{$IFDEF old}
+  WriteStartOfTable1Column('summary');
+    for i := 0 to Items.Count - 1 do
+      WriteItemTableRow(Items.PasItemAt(i), ShowVisibility, true, false);
+  WriteEndOfTable;
+{$ELSE}
+
+(* This is an attempt to show short symbol and description entries in the
+  summary (overview) table.
+*)
+
+(* How many columns? (one for visibility?)
+  What about css!!!???
+*)
+{
+  WriteStartOfTable2Columns('summary', Language.Translation[trName],
+    Language.Translation[trDescription]);
+}
+  if ShowVisibility then
+  //how to handle visibility column?
+    WriteStartOfTable('summary')
+  else
+    WriteStartOfTable2Columns('summary', Language.Translation[trName],
+      Language.Translation[trDescription]);
+
+  for i := 0 to Items.Count - 1 do begin
+    //WriteItemTableRow(Items.PasItemAt(i), ShowVisibility, true, false);
+    item := Items.PasItemAt(i);
+    WriteStartOfTableRow('');
+      if ShowVisibility then
+        WriteVisibilityCell(item);
+      WriteStartOfTableCell('itemname');
+      //WriteLink(Item.FullLink, Item.Name, 'bold');
+      WriteLink(Item.FullLink, Item.ShortDeclaration, 'bold');
+      WriteEndOfTableCell;
+
+      WriteStartOfTableCell('itemdesc');
+      WriteItemShortDescription(Item);
+      WriteEndOfTableCell;
+    WriteEndOfTableRow;
+  end;
 
   WriteEndOfTable;
+{$ENDIF}
 end;
 
 procedure TFullHTMLDocGenerator.WriteMembersDetailed(Items: TDescriptionItem; ShowVisibility: boolean;
@@ -941,6 +985,8 @@ var
   procedure WriteUnitUses;
   var
     i: Integer;
+    s: string;
+    item: TPasUsed;
     ULink: TPasItem;
   begin
   (* Write section (anchor+caption), and list of links (merge with WriteSeeAlso?)
@@ -950,12 +996,21 @@ var
     WriteDirect('<ul class="useslist">');
     for i := 0 to AItem.Count-1 do begin
       WriteDirect('<li>');
-        ULink := AItem.PasItemAt(i);
+      begin //li
+        item := AItem.ItemAt(i) as TPasUsed;
+        s := item.FullDeclaration; //should be set also for uses, now
+        ULink := item.ParsedUnit;
         if ULink <> nil then begin
-          WriteLink(ULink.FullLink, AItem.Items[i].Name, '');
+          WriteLink(ULink.FullLink, s, '');
         end else begin
-          WriteConverted(AItem.Items[i].Name);
+          WriteConverted(s);
         end;
+        s := item.ShortDescription;
+        if s <> '' then begin
+          WriteDirect(' - '); //WriteConverted?
+          WriteItemShortDescription(item);
+        end;
+      end; //li
       WriteDirect('</li>');
     end;
     WriteDirect('</ul>');
@@ -1032,16 +1087,20 @@ begin //WriteDescriptionItem
   //enums and procs should not have trOverview for their members!
   //write details depending on project type! (PasDoc: here, Help: distinct files)
     if InTable then begin
+    //detailed description of enums and procedures
       for i := 0 to AItem.Count - 1 do begin
-        item := AItem.ItemAt(i); //expect: Classes, Variables...
-        WriteMembersDetailed(item, PasItem.Kind in CIOClassTypes, HL+1);
+        item := AItem.ItemAt(i); //expect: Values, Parameters...
+      //exclude used units from details
+        if item.ID <> trUnit then
+          WriteMembersDetailed(item, PasItem.Kind in CIOClassTypes, HL+1);
       end;
-    end else begin
+    end else begin //unit, CIO
+    //overview table
       WriteHeading(HL + 1, 'overview', Language.Translation[trOverview]);
       for i := 0 to AItem.Count - 1 do begin
         WriteMemberSummary(AItem.ItemAt(i), PasItem.Kind in CIOClassTypes, HL+1);
       end;
-
+    //detailed descriptions
       WriteHeading(HL + 1, 'description', Language.Translation[trDescriptions]);
       for i := 0 to AItem.Count - 1 do begin
         item := AItem.ItemAt(i); //expect: Classes, Variables...

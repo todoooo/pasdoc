@@ -19,7 +19,7 @@ unit PasDoc_Items;
 {-$DEFINE DetailedProps}
 {-$DEFINE paragraphs}
 {$DEFINE groups}
-{-$DEFINE DbgFree} //-debug destruction?
+{$DEFINE DbgFree} //-debug destruction?
 
 interface
 
@@ -75,6 +75,10 @@ const
     SD_AUTOMATED, SD_INVALIDSTANDARDDIRECTIVE
   );
 var
+(* Include only items of the listed visibility.
+  This set is used to mark CIO members for exclude, when added to the CIO.
+  To be set by TPasDoc.Execute, either directly or when the parser is created.
+*)
   ShowVisibilities: TVisibilities;
 
 const
@@ -202,6 +206,9 @@ type
     procedure SaveToBinaryStream(Stream: TStream); virtual;
 {$ELSE}
 {$ENDIF}
+  //virtual version of AsPasItem
+    function  GetPasItem: TPasItem; virtual;
+    procedure SetPasItem(AItem: TPasItem); virtual;
     function GetRawDescription: string; virtual;
   public
   //name of this item
@@ -217,7 +224,6 @@ type
 
   //get Self as TPasItem, or Nil. Virtual for delegates.
     function  AsPasItem: TPasItem; //virtual;
-    procedure SetPasItem(AItem: TPasItem); virtual;
     property  PasItem: TPasItem read AsPasItem write SetPasItem;
 
   //find item by name
@@ -304,21 +310,6 @@ type
 
   //Set by @@exclude, to exclude this item from the generated documentation.
     property ToBeExcluded: boolean read FExclude;
-  end;
-
-(* Placeholder for external references.
-  Only overwrites the PasItem getter/setter. The item is not owned.
-  Everything else is handled by the containers, i.e.
-  in PasUnit for Uses, and PasCio for Ancestors.
-
-  The methods are protected against Self=Nil, so that it does no harm
-  to append .PasItem to a search or other method, that can return Nil.
-*)
-  TPasDelegate = class(TDescriptionItem)
-  public
-    MyItem: TPasItem;
-  //get TPasItem, or Nil.
-    procedure SetPasItem(AItem: TPasItem); override;
   end;
 
 (* List of descriptions or other items.
@@ -697,6 +688,7 @@ type
     Initialized when added to the Members of the owner.
   }
     FMyOwner: TPasScope;
+    function  GetPasItem: TPasItem; override;
   //obsolete?
     function  GetMyObject: TPasCio;
     function  GetMyUnit: TPasUnit;
@@ -803,10 +795,13 @@ type
   {$ELSE}
   //experimental
     property FullDeclaration: string read Value write Value;
+  //typename + name, as applicable. No translation provisions!
+    function  ShortDeclaration: string; virtual;
   {$ENDIF}
 
     { Returns the qualified name of the item.
       This is intended to return a concise and not ambigous name.
+      (overridden items still are ambiguous!)
       E.g. in case of TPasItem it is overriden to return Name qualified
       by class name and unit name.
 
@@ -822,6 +817,23 @@ type
   end;
 
   TPasItemClass = class of TPasItem;
+
+(* Placeholder for external references.
+  Only overwrites the PasItem getter/setter. The item is not owned.
+  Everything else is handled by the containers, i.e.
+  in PasUnit for Uses, and PasCio for Ancestors.
+
+  The methods are protected against Self=Nil, so that it does no harm
+  to append .PasItem to a search or other method, that can return Nil.
+*)
+  TPasDelegate = class(TDescriptionItem)
+  protected
+    FMyItem: TPasItem;
+    function  GetPasItem: TPasItem; override;
+  public
+  //get TPasItem, or Nil.
+    procedure SetPasItem(AItem: TPasItem); override;
+  end;
 
   { Container class to store a list of @link(TBaseItem)s.
     Essentially implements all the hash-related stuff.
@@ -902,6 +914,12 @@ type
     function Text(const NameValueSeparator, ItemSeparator: string): string;
   end;
 
+//group-tag action. For internal use only.
+  eGroupAs = (
+    gaSingle, //goup this item
+    gaStart, gaEnd //start/end grouping of items
+  );
+
 (* Item with members.
   All members are owned by the global Members list.
   Specialized member lists can contain subsets of Members.
@@ -916,19 +934,17 @@ type
     trValues in enums.
   Any number of such lists can occur, less with omitted empty lists, more by grouping.
 *)
-
-  eGroupAs = (
-    gaSingle, //goup this item
-    gaStart, gaEnd //start/end grouping of items
-  );
-
   TPasScope = class(TPasItem)
   protected
   //List of all members, for internal use only.
   //Possibly exported as Values (enum...)?
     FMembers: TPasItems;
+  {$IFDEF old}
   //heritage list
     FHeritage: TDescriptionItem;
+  {$ELSE}
+    //-moved into TPasCIO
+  {$ENDIF}
   (* List of special member lists, for internal use only.
     This list contains sublists of selected members.
     The sublists must NOT own the members.
@@ -1057,6 +1073,8 @@ type
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string); override;
     procedure BuildLinks(AllUnits: TPasUnits; TheGenerator: TLinkGenerator); override;
+  //really required?
+    function  ShortDeclaration: string; override;
 
     procedure Sort(const SortSettings: TSortSettings); override;
 
@@ -1185,7 +1203,13 @@ type
     FFields,
     FMethods,
     FProperties: TPasItems;
+  {$IFDEF old}
     property FAncestors: TDescriptionItem read FHeritage write FHeritage;
+  {$ELSE}
+  //heritage list
+    //FHeritage: TDescriptionItem;
+    FAncestors: TDescriptionItem;
+  {$ENDIF}
     function  GetClassDirective: TClassDirective;
   //group member(s) from the appropriate list.
     function DoGroup(how: eGroupAs; AItem: TPasItem;
@@ -1205,6 +1229,7 @@ type
   public
     constructor Create(AOwner: TPasScope; AKind: TTokenType;
       const AName: string); override;
+    destructor Destroy; override;
 
   (* Resolve links to inherited classes and interfaces.
     Init output filename (all scopes?)
@@ -1217,6 +1242,10 @@ type
     {@name is used to indicate whether a class is sealed or abstract.}
     property ClassDirective: TClassDirective //read FClassDirective write FClassDirective;
       read GetClassDirective;
+  {$IFDEF new}
+    function  ShortDeclaration: string; override;
+  {$ELSE}
+  {$ENDIF}
 
   //add item to members and to appropriate list
     procedure AddMember(item: TPasItem); override;
@@ -1234,7 +1263,6 @@ type
 
     procedure RegisterTags(TagManager: TTagManager); override;
   public
-
     { Name of the ancestor class / object.
       Objects[] of this vector are assigned in TDocGenerator.BuildLinks to
       TPasItem instances of ancestors (or nil if such ancestor is not found).
@@ -1257,7 +1285,7 @@ type
       and user didn't specify ancestor name at class declaration,
       and this class name is not 'TObject' (in case pasdoc parses the RTL),
       the Ancestors[0] will be set to 'TObject'. }
-    property Ancestors: TDescriptionItem read FHeritage;
+    property Ancestors: TDescriptionItem read FAncestors; // FHeritage;
 
     { This returns Ancestors.Objects[0], i.e. instance of the first ancestor of this Cio,
       or nil if it couldn't be found or Ancestors.Count = 0. }
@@ -1388,6 +1416,16 @@ end;
 
   TMemberListItem = TPasItems;
 
+//Units in uses clause.
+  TPasUsed = class(TPasItem)
+  protected
+    function  GetParsedUnit: TPasUnit;
+    procedure SetParsedUnit(item: TPasUnit);
+  public
+    destructor Destroy; override;
+    property ParsedUnit: TPasUnit read GetParsedUnit write SetParsedUnit;
+  end;
+
   { extends @link(TPasScope) to store anything about a unit, its constants,
     types etc.; also provides methods for parsing a complete unit.
 
@@ -1399,12 +1437,14 @@ end;
     FCacheDateTime: TDateTime;
     FSourceFileDateTime: TDateTime;
   //all shortcuts to the lists of description items
+    FUsesUnits,
     FTypes,
     FVariables,
     FCIOs,
     FConstants,
     FFuncsProcs: TMemberListItem; //TPasItems;?
-    property FUsesUnits: TDescriptionItem read FHeritage write FHeritage;
+    //property FUsesUnits: TDescriptionItem read FHeritage write FHeritage;
+    function  GetUsedUnit(index: integer): TPasUnit;
   //group member(s) from the appropriate list.
     function DoGroup(how: eGroupAs; AItem: TPasItem;
       const AParam: string; lst: TDescriptionItem = nil): boolean; override;
@@ -1448,20 +1488,11 @@ end;
 
     { The names of all units mentioned in a uses clause in the interface
       section of this unit.
-
-      This is never nil.
-
-      After @link(TDocGenerator.BuildLinks), for every i:
-      UsesUnits.Objects[i] will point to TPasUnit object with
-      Name = UsesUnits[i] (or nil, if pasdoc's didn't parse such unit).
-      In other words, you will be able to use UsesUnits.Objects[i] to
-      obtain given unit's instance, as parsed by pasdoc.
-
-      Members should become TStringPairs, which can hold a description?
-      Like with parameters etc., which (currently) are not provided
-      by the parser.
     }
-    property UsesUnits: TDescriptionItem read FHeritage; //FUsesUnits;
+    //-property UsesUnits: TDescriptionItem read FHeritage; //-FUsesUnits;
+    property UsesUnits: TMemberListItem read FUsesUnits;
+  //access used units, if parsed.
+    property UsedUnit[index: integer]: TPasUnit read GetUsedUnit;
 
     property SourceFileName: string read FSourceFilename write FSourceFilename;
     property SourceFileDateTime: TDateTime
@@ -2030,6 +2061,11 @@ begin
   inherited;
 end;
 
+function TPasItem.GetPasItem: TPasItem;
+begin
+  Result := self;
+end;
+
 function TPasItem.IsKey(AKey: TTokenType): boolean;
 begin
   Result := FKind = AKey;
@@ -2192,6 +2228,16 @@ begin
     Result := {QualIdSeparator +} Name; //flag absolute name path?
 end;
 
+function TPasItem.ShortDeclaration: string;
+begin
+//here: declaration token + Name
+  Result := TokenName(Kind);
+  if Result <> '' then
+    Result := Result + ' ' + Name
+  else
+    Result := Name;
+end;
+
 function TPasItem.GetAttribute(attr: TPasItemAttribute): boolean;
 begin
   Result := attr in FAttributes;
@@ -2279,8 +2325,9 @@ const
     trValues, //enums, constants?
     trAuthors, trCreated, trLastModified
   );
-  MemberListSortOrder: array[0..7] of TTranslationID = (
+  MemberListSortOrder: array[0..8] of TTranslationID = (
   //units
+    trUses,
     trCio, trFunctionsAndProcedures, trTypes, trVariables, trConstants,
   //CIOs
     trFields, trMethods, trProperties
@@ -2305,13 +2352,17 @@ begin
   if FMembers = nil then
     FMembers := TPasItems.Create(True);
   FMemberLists := TDescriptionItem.Create('', '', trOverview, dkItemList);
+{$IFDEF old}
 //problem: simple class members only have an inherited ancestor!
   FHeritage := TDescriptionItem.Create('', '', trHierarchy, dkItemList);
     //overwrite in non-CIO classes
+{$ELSE}
+{$ENDIF}
 end;
 
 destructor TPasScope.Destroy;
 begin
+{$IFDEF old}
   if FHeritage <> nil then begin
   {$IFDEF DbgFree}
     DoLog(Name + ': heritage=$' + IntToHex(cardinal(FHeritage), 8));
@@ -2324,6 +2375,8 @@ begin
     FreeAndNil(FHeritage); //seems to be fixed
   {$ENDIF}
   end;
+{$ELSE}
+{$ENDIF}
   FreeAndNil(FMemberLists);
   FreeAndNil(FMembers);
   inherited;
@@ -2428,6 +2481,13 @@ begin
     //item.BuildSections; //here, unless BuildSections is overwritten
   end;
   //inherited BuildLinks(AllUnits, TheGenerator); //nop!?
+end;
+
+function TPasEnum.ShortDeclaration: string;
+begin
+  //Result := inherited ShortDeclaration;
+//if not applicable:
+  Result := 'enum ' + Name;
 end;
 
 procedure TPasEnum.StoreValueTag(
@@ -2697,21 +2757,21 @@ begin
       FFields.SortKind := ssRecordFields;
     end;
   else //case
+  {$IFDEF old}
     FHeritage.FTID := trHierarchy;
+  {$ELSE}
+    FAncestors := TDescriptionItem.Create('', '', trHierarchy, dkItemList);
+  {$ENDIF}
     FFields := NewList(trFields);
     FMethods := NewList(trMethods);
     FProperties := NewList(trProperties);
   end;
 end;
 
-function  TPasCio.GetClassDirective: TClassDirective;
+destructor TPasCio.Destroy;
 begin
-  if SD_ABSTRACT in FAttributes then
-    Result := CT_ABSTRACT
-  else if SD_SEALED in FAttributes then
-    Result := CT_SEALED
-  else
-    Result := CT_NONE;
+  FreeAndNil(FAncestors);
+  inherited;
 end;
 
 procedure TPasCio.AddMember(item: TPasItem);
@@ -2788,40 +2848,31 @@ end;
 {$ELSE}
 {$ENDIF}
 
-procedure TPasCio.RegisterTags(TagManager: TTagManager);
+function  TPasCio.GetClassDirective: TClassDirective;
 begin
-  inherited;
-  { Note that @member tag does not have toRecursiveTags,
-    and it shouldn't: parameters of this tag will be copied
-    verbatim to appropriate member's RawDescription,
-    and they will be expanded when this member will be expanded
-    by TDocGenerator.ExpandDescriptions.
-
-    This way they will be expanded exactly once, as they should be.
-
-    Moreover, this allows you to correctly use tags like @param
-    and @raises inside @member for a method. }
-  TTag.Create(TagManager, 'member',
-    nil, {$IFDEF FPC}@{$ENDIF} StoreMemberTag,
-    [toParameterRequired]);
-{$IFDEF new}
-  TTag.Create(TagManager, 'classname',
-    nil, {$IFDEF FPC}@{$ENDIF} HandleClassnameTag, []);
-  TTag.Create(TagManager, 'inheritedclass',
-    nil, {$IFDEF FPC}@{$ENDIF} HandleInheritedClassTag, []);
-  TTag.Create(TagManager, 'inherited',
-    nil, {$IFDEF FPC}@{$ENDIF} HandleInheritedTag, []);
-{$ELSE}
-(* We should only provide means to access the names,
-  so that the generator handlers can format and link the tags freely.
-  @classname <-> [MyObject.]Name
-  @inheritedclass <-> FirstAncestor.Name
-  @inherited -> FindInAncestors().???
-*)
-{$ENDIF}
+  if SD_ABSTRACT in FAttributes then
+    Result := CT_ABSTRACT
+  else if SD_SEALED in FAttributes then
+    Result := CT_SEALED
+  else
+    Result := CT_NONE;
 end;
 
 {$IFDEF new}
+function TPasCio.ShortDeclaration: string;
+begin
+  Result := TokenName(Kind);
+  if Result <> '' then
+    Result := Result + ' ' + Name
+  else
+    Result := Name;
+end;
+{$ELSE}
+//obolete
+{$ENDIF}
+
+{$IFDEF new}
+//experimental - usage???
 procedure TPasCio.HandleClassnameTag(ThisTag: TTag;
   var ThisTagData: TObject; EnclosingTag: TTag;
   var EnclosingTagData: TObject; const TagParameter: string;
@@ -2856,6 +2907,39 @@ begin
   end else
     ThisTag.TagManager.DoMessage(1, pmtWarning,
       '@member tag specifies unknown member "%s".', [MemberName]);
+end;
+
+procedure TPasCio.RegisterTags(TagManager: TTagManager);
+begin
+  inherited;
+  { Note that @member tag does not have toRecursiveTags,
+    and it shouldn't: parameters of this tag will be copied
+    verbatim to appropriate member's RawDescription,
+    and they will be expanded when this member will be expanded
+    by TDocGenerator.ExpandDescriptions.
+
+    This way they will be expanded exactly once, as they should be.
+
+    Moreover, this allows you to correctly use tags like @param
+    and @raises inside @member for a method. }
+  TTag.Create(TagManager, 'member',
+    nil, {$IFDEF FPC}@{$ENDIF} StoreMemberTag,
+    [toParameterRequired]);
+{$IFDEF new}
+  TTag.Create(TagManager, 'classname',
+    nil, {$IFDEF FPC}@{$ENDIF} HandleClassnameTag, []);
+  TTag.Create(TagManager, 'inheritedclass',
+    nil, {$IFDEF FPC}@{$ENDIF} HandleInheritedClassTag, []);
+  TTag.Create(TagManager, 'inherited',
+    nil, {$IFDEF FPC}@{$ENDIF} HandleInheritedTag, []);
+{$ELSE}
+(* We should only provide means to access the names,
+  so that the generator handlers can format and link the tags freely.
+  @classname <-> [MyObject.]Name
+  @inheritedclass <-> FirstAncestor.Name
+  @inherited -> FindInAncestors().???
+*)
+{$ENDIF}
 end;
 
 function TPasCio.FirstAncestor: TPasCio;
@@ -2954,20 +3038,25 @@ end;
 
 procedure TPasCio.BuildSections;
 var
-  desc: TDescriptionItem;
+  desc, del: TDescriptionItem;
   anc: TPasItem;
 begin
+(* Here: build class hierarchy, recursive from the first ancestors.
+  Include possibly unresolved (last) ancestor.
+  Add self as last entry, new delegate to prevent recursion in doc generator!
+*)
 //hierarchy
   if not IsEmpty(Ancestors) then begin
     desc := AddNew(trHierarchy, dkItemList);
     desc.FList.OwnsObjects := False; //new list type: NoOwnItems?
-    anc := FInherited;  // FirstAncestorItem;
-    while anc <> nil do begin
+    del := FirstAncestorItem;
+    while del <> nil do begin
     //add ancestors in reverse order
-      desc.FList.Insert(0, anc);
-    //anc is a delegate, we must use anc.PasItem to get the TPasCio from it.
+      desc.FList.Insert(0, del);
+    //del is a delegate, we must use del.PasItem to get the TPasCio from it.
+      anc := del.PasItem;
       if anc is TPasCio then
-        anc := anc.FInherited
+        del := anc.FirstAncestorItem
       else
         break;
     end;
@@ -2986,10 +3075,15 @@ const
 begin
   inherited;
 //description - implicit
+{$IFDEF old}
 //uses - reuse heritage
   FHeritage.FTID := trUses;
   FHeritage.FList.SortKind := ssUsesClauses;
     //only add to descriptions if ShowUses!
+  FHeritage.FList.OwnsObjects := False; //objects also reside in the Member list!
+{$ELSE}
+  FUsesUnits := FMemberLists.AddNew(trUses, dkPasItems).PasItems;
+{$ENDIF}
 //overview
   //FCIOs := FMemberLists.AddNew(trClasses, dkPasItems).PasItems;
   FCIOs := FMemberLists.AddNew(trCio, dkPasItems).PasItems;
@@ -3007,13 +3101,22 @@ begin
     if UnitUnderDestruction <> nil then begin
       DoLog('Illegal destroy unit ' + Name + ' from inside ' + UName);
     end;
+  {$IFDEF old}
+    if FHeritage.FList.OwnsObjects then begin
+      DoLog('used unit owned!');
+      FHeritage.FList.OwnsObjects := False;
+    end;
+  {$ELSE}
+  {$ENDIF}
     try
       UnitUnderDestruction := self;
       UName := self.Name;
 
       inherited Destroy;
-    finally
+
       DoLog('Done destroy unit ' + Name);
+    finally
+    //also in case of exception!
       UnitUnderDestruction := nil;
       UName := '';
     end;
@@ -3050,10 +3153,13 @@ end;
 
 procedure TPasUnit.Sort(const SortSettings: TSortSettings);
 begin
-  inherited; //sort standard member lists
+  inherited Sort(SortSettings); //sort standard member lists
+{$IFDEF old}
 //special case, of non-PasItems
   if (UsesUnits <> nil) and (ssUsesClauses in SortSettings) then
     UsesUnits.Sort(SortSettings);
+{$ELSE}
+{$ENDIF}
 end;
 
 function TPasUnit.FindItemInAncestors(const ItemName: string): TPasItem;
@@ -3062,7 +3168,8 @@ var
   uitem: TPasUnit;
 begin
   for i := 0 to UsesUnits.Count - 1 do begin
-    uitem := UsesUnits.Items[i].PasItem as TPasUnit;
+    //uitem := UsesUnits.Items[i].PasItem as TPasUnit;
+    uitem := UsedUnit[i];
     if uitem <> nil then begin
       Result := uitem.FindItem(ItemName) as TPasItem;
       if Result <> nil then
@@ -3078,7 +3185,7 @@ procedure TPasUnit.BuildLinks(AllUnits: TPasUnits;
 var
   i: integer;
   item: TPasItem;
-  u: TDescriptionItem;
+  u: TPasUsed;  // TDescriptionItem;
 begin
 (* primary call, distribute to all scopes
 *)
@@ -3087,12 +3194,18 @@ begin
 //used units
   if not IsEmpty(UsesUnits) then begin
     for i := 0 to UsesUnits.Count - 1 do begin
+    {$IFDEF old}
       u := UsesUnits.ItemAt(i);
       if u.PasItem = nil then
         u.PasItem := AllUnits.FindName(u.Name);
+    {$ELSE}
+      item := UsesUnits.PasItemAt[i];
+      u := item as TPasUsed;
+      u.ParsedUnit := AllUnits.FindName(u.Name) as TPasUnit; //nil is okay
+    {$ENDIF}
     end;
   //add description item
-    AddListDelegate(trUses, UsesUnits.FList);
+    AddListDelegate(trUses, UsesUnits);
   end;
 //if CIOs are merged with other types!?
   for i := 0 to Members.Count - 1 do begin
@@ -3125,9 +3238,12 @@ begin
 //build general sections and recurse.
   inherited BuildSections;
 //special sort of Unit member list.
+{$IFDEF old}
 //could extend DefaultSectionSortOrder accordingly.
-  FMemberLists.SortByID([trCio, trFunctionsAndProcedures, trTypes,
+  FMemberLists.SortByID([trUses, trCio, trFunctionsAndProcedures, trTypes,
     trConstants, trVariables]);
+{$ELSE}
+{$ENDIF}
 end;
 
 procedure TPasUnit.AddMember(item: TPasItem);
@@ -3137,13 +3253,31 @@ begin
   KEY_CONST:  FConstants.Add(item);
   KEY_TYPE:   FTypes.Add(item);
   KEY_VAR:    FVariables.Add(item);
-  KEY_UNIT:   UsesUnits.AddNew(trUnit, dkDelegate, item.Name).PasItem := item;
-  else
+  {$IFDEF old}
+  KEY_UNIT:
+    UsesUnits.AddNew(trUnit, dkDelegate, item.Name).PasItem := item;
+  {$ELSE}
+  KEY_UNIT: //KEY_USES:
+    begin
+      assert(item is TPasUsed, 'bad call');
+      FUsesUnits.Add(item);  //item is assumed to be a TPasUsed
+    end;
+  {$ENDIF}
+  else //case
     if item.Kind in CioTypes then
       FCIOs.Add(item)
     else
       FFuncsProcs.Add(item);
   end;
+end;
+
+function TPasUnit.GetUsedUnit(index: integer): TPasUnit;
+var
+  delegate: TPasUsed;
+begin
+  //delegate := FHeritage.ItemAt(index) as TPasUsed;
+  delegate := FUsesUnits.ItemAt(index) as TPasUsed;
+  Result := delegate.ParsedUnit;
 end;
 
 function TPasUnit.DoGroup(how: eGroupAs; AItem: TPasItem;
@@ -3545,7 +3679,7 @@ begin
 //for now, we add all non-empty member lists
   for i := 0 to FMemberLists.Count - 1 do begin
     ml := FMemberLists.ItemAt(i);
-    if not IsEmpty(ml) then begin
+    if not IsEmpty(ml) and (ml.FTID <> trUses) then begin
     //top-down, because items can be excluded!
       for j := ml.Count - 1 downto 0 do begin
         ps := ml.PasItemAt(j);
@@ -3920,13 +4054,18 @@ end;
 
 function TDescriptionItem.AsPasItem: TPasItem;
 begin
-//protect against Nil!
-  Result := nil;
-  if Self = nil then exit;
+//protect against Nil, that's why this method cannot be virtual.
+  if Self = nil then
+    Result := nil
+  else
+    Result := GetPasItem;
+{$IFDEF old}
   if Self is TPasItem then
     Result := TPasItem(Self)
   else if Self is TPasDelegate then
     Result := TPasDelegate(Self).MyItem;
+{$ELSE}
+{$ENDIF}
 end;
 
 function TDescriptionItem.PasItemAt(index: integer): TPasItem;
@@ -4219,6 +4358,11 @@ begin
 {$ENDIF}
 end;
 
+function TDescriptionItem.GetPasItem: TPasItem;
+begin
+  Result := nil;
+end;
+
 { TDescriptionList }
 
 function TDescriptionList.Add(const AObject: TDescriptionItem): integer;
@@ -4337,9 +4481,31 @@ end;
 
 { TPasDelegate }
 
+function TPasDelegate.GetPasItem: TPasItem;
+begin
+  Result := FMyItem;
+end;
+
 procedure TPasDelegate.SetPasItem(AItem: TPasItem);
 begin
-  MyItem := AItem;
+  FMyItem := AItem;
+end;
+
+{ TPasUsed }
+
+destructor TPasUsed.Destroy;
+begin
+  inherited;
+end;
+
+function TPasUsed.GetParsedUnit: TPasUnit;
+begin
+  Result := FInherited as TPasUnit;
+end;
+
+procedure TPasUsed.SetParsedUnit(item: TPasUnit);
+begin
+  FInherited := item;
 end;
 
 initialization

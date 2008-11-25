@@ -1455,6 +1455,8 @@ var
     end;
   end;
 
+var
+  U: TPasUnits;
 begin
   tvUnits.Items.Clear;
   Lang := TPasDocLanguages.Create;
@@ -1463,10 +1465,13 @@ begin
     if PasDoc1.IntroductionFileName <> '' then begin
       tvUnits.Items.AddObject(nil, PasDoc1.IntroductionFileName, PasDoc1.Introduction);
     end;
+    U := PasDoc1.DocUnits;
+    if IsEmpty(U) then
+      U := PasDoc1.AllUnits;  //seems to be better anyhow, for editing
     AllUnitsNode := tvUnits.Items.AddObject(nil,
-      Lang.Translation[trUnits], PasDoc1.DocUnits);
-    for UnitIndex := 0 to PasDoc1.DocUnits.Count -1 do begin
-      UnitItem := PasDoc1.DocUnits.UnitAt[UnitIndex];
+      Lang.Translation[trUnits], U);
+    for UnitIndex := 0 to U.Count -1 do begin
+      UnitItem := U.UnitAt[UnitIndex];
       if not UnitItem.ToBeExcluded then begin
         UnitNode := tvUnits.Items.AddChildObject(AllUnitsNode,
           UnitItem.SourceFileName, UnitItem);

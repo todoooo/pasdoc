@@ -500,9 +500,12 @@ type
      @link(TGenericHTMLDocGenerator) in writing the declaration of the class.}
     function GetClassDirectiveName(Directive: TClassDirective): string;
 
+  {$IFDEF old}
     {@name writes a translation of MyType based on the current language.
      However, 'record' and 'packed record' are not translated.}
     function GetCIOTypeName(MyType: TCIOType): string;
+  {$ELSE}
+  {$ENDIF}
 
     { Searches for item with name S.
 
@@ -1991,6 +1994,7 @@ begin
   end;
 end;
 
+{$IFDEF old}
 function TDocGenerator.GetCIOTypeName(MyType: TCIOType): string;
 begin
 { TODO : split into token->tid, tid->name }
@@ -2003,6 +2007,9 @@ begin
   else      Result := '';
   end;
 end;
+{$ELSE}
+//should become a TPasItem method
+{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 
