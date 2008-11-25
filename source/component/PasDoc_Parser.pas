@@ -1199,7 +1199,8 @@ var
     procedure CheckFor(const s: string);
     begin
       if not SameText(i.Name, s) then
-        i.Ancestors.AddNew(trNoTrans, dkDelegate, s);
+        //i.Ancestors.AddNew(trNoTrans, dkDelegate, s);
+        i.AddAncestor(s);
     end;
 
   begin
@@ -1243,7 +1244,7 @@ or
     //start recording ancestor
       i.FullDeclaration := i.FullDeclaration + Recorded;
       QualId(True); FreeAndNil(Identifier);
-      i.Ancestors.AddNew(trNoTrans, dkDelegate, Recorder);
+      i.AddAncestor(Recorder);
     until not Skip(SYM_COMMA);
     Expect(SYM_RIGHT_PARENTHESIS);
   end else
@@ -1259,7 +1260,7 @@ or
   i.FullDeclaration := i.FullDeclaration + Recorded;
 
   if PeekNextToken <> SYM_SEMICOLON then begin
-    { Else A declaration of type "name = class(ancestor);" }
+    { Else a declaration of type "name = class(ancestor);" }
 
   //default visibility
     if I.MyType = KEY_CLASS then begin

@@ -1434,6 +1434,7 @@ var
   AllUnitsNode: TTreeNode;
   UnitIndex: integer;
   UnitNode: TTreeNode;
+  PasItem: TPasItem;
 
   procedure populate(root: TTreeNode; rootitem: TDescriptionItem);
   var
@@ -1444,11 +1445,17 @@ var
   begin
     for i := 0 to rootitem.Count - 1 do begin
       item := rootitem.ItemAt(i);
-      if item.ID = trNoTrans then
+      PasItem := item.PasItem;
+      if PasItem <> nil then
+        s := PasItem.ShortDeclaration
+      else if item.ID = trNoTrans then
         //s := item.Name
         s := item.Text(' ', '')
-      else
+      else begin
         s := Lang.Translation[item.ID];
+        if item.Name <> '' then
+          s := s + ' ' + item.Name;
+      end;
       n := tvUnits.Items.AddChildObject(root, s, item);
       if item.Count > 0 then
         populate(n, item);

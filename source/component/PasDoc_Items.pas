@@ -1249,6 +1249,8 @@ type
 
   //add item to members and to appropriate list
     procedure AddMember(item: TPasItem); override;
+  //add ancestor delegate
+    function  AddAncestor(const AName: string): TDescriptionItem;
 
     { This searches for item (field, method or property) defined
       in ancestor of this cio. I.e. searches within the FirstAncestor,
@@ -2802,6 +2804,13 @@ begin
   end;
 end;
 
+function TPasCio.AddAncestor(const AName: string): TDescriptionItem;
+begin
+//this is the old version, lacking ShortDeclaration
+  Result := Ancestors.AddNew(trNoTrans, dkDelegate, AName);
+  //Result := TPasItem.Create();
+end;
+
 function TPasCio.DoGroup(how: eGroupAs; AItem: TPasItem;
   const AParam: string; lst: TDescriptionItem): boolean;
 var
@@ -3039,7 +3048,7 @@ end;
 procedure TPasCio.BuildSections;
 var
   desc, del: TDescriptionItem;
-  anc: TPasItem;
+  anc: TPasCIO; //TPasItem;
 begin
 (* Here: build class hierarchy, recursive from the first ancestors.
   Include possibly unresolved (last) ancestor.
@@ -3049,19 +3058,22 @@ begin
   if not IsEmpty(Ancestors) then begin
     desc := AddNew(trHierarchy, dkItemList);
     desc.FList.OwnsObjects := False; //new list type: NoOwnItems?
-    del := FirstAncestorItem;
+    //del := FirstAncestorItem; - do NOT enter resolved CIOs!
+    del := FAncestors.ItemAt(0);
     while del <> nil do begin
     //add ancestors in reverse order
       desc.FList.Insert(0, del);
     //del is a delegate, we must use del.PasItem to get the TPasCio from it.
-      anc := del.PasItem;
-      if anc is TPasCio then
-        del := anc.FirstAncestorItem
+      anc := del.PasItem as TPasCio;
+      if anc <> nil then
+        //del := anc.FirstAncestorItem
+        del := anc.Ancestors.ItemAt(0)
       else
         break;
     end;
   //add self as last item. Make delegate to prevent destruction!
-    desc.AddNew(ID, dkNoList, Name, Value);
+    //del := desc.AddNew(ID, dkNoList, Name, Value);
+    {del :=} desc.AddNew(trNoTrans, dkDelegate, Name);
   end;
   inherited BuildSections; //build overview
 end;
