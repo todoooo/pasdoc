@@ -127,6 +127,10 @@ type
     swShowUses: TCheckBox;
     edValue: TEdit;
     buClrDoc: TButton;
+    edDescDir: TDirBox;
+    mnEditDocs: TMenuItem;
+    popTree: TPopupMenu;
+    mnEdNode: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure lbOutTypeChange(Sender: TObject);
     procedure lbOutLangChange(Sender: TObject);
@@ -161,6 +165,11 @@ type
     procedure tvUnitsClick(Sender: TObject);
     procedure cbRemClick(Sender: TObject);
     procedure buClrDocClick(Sender: TObject);
+    procedure edDescDirbuSelectClick(Sender: TObject);
+    procedure mnEditDocsClick(Sender: TObject);
+    procedure mnEdNodeClick(Sender: TObject);
+    procedure tvUnitsContextPopup(Sender: TObject; MousePos: TPoint;
+      var Handled: Boolean);
   private
     FHasChanged: boolean;
     MisspelledWords: TStringList;
@@ -238,14 +247,16 @@ uses
   WWWBrowserRunnerDM,
   PreferencesFrm,
   HelpProcessor,
-  PasDocGuiSettings, IniFiles;
+  PasDocGuiSettings,
 {$ELSE}
   //fAbout,
   //WWWBrowserRunnerDM,
   //PreferencesFrm,
   ShellAPI,
-  IniFiles;
+  //IniFiles,
 {$ENDIF}
+  IniFiles,
+  fEditor;
 
 {$R *.dfm}
 
@@ -557,6 +568,7 @@ begin
 
   edProjectName.Text := '';
   edOutput.Text := '';
+  edDescDir.Text := '';
 {$IFDEF old}
   MsgLvl := 2;
   edMsgLvl.Text := IntToStr(MsgLvl);  // '2'; //seVerbosity.Value := 2;
@@ -595,6 +607,7 @@ const
     mainCssFileName = 'CssFileName';
     //mainGenerateFormat = 'GenerateFormat';
     mainDocType = 'DocType';
+    mainDescDir = 'DescriptionDir';
     mainIntroductionFileName = 'IntroductionFileName';
     mainLanguage = 'Language';
     mainLanguageName = 'LanguageName';
@@ -659,6 +672,7 @@ begin
   {$ENDIF}
     Ini.WriteString(secMain, mainRootDir, edRoot.Text);
     Ini.WriteString(secMain, mainOutputDir, edOutput.Text);
+    Ini.WriteString(secMain, mainDescDir, edDescDir.Text);
     //Ini.WriteInteger(secMain, mainGenerateFormat, lbOutType.ItemIndex);
     Ini.WriteString(secMain, mainDocType, lbOutType.Text);
     Ini.WriteString(secMain, mainProjectName, edProjectName.Text);
@@ -769,6 +783,7 @@ begin
     if edRoot.Text <> '' then
       lbFiles.dlgAdd.InitialDir := edRoot.Text;
     edOutput.Text := Ini.ReadString(secMain, mainOutputDir, '');
+    edDescDir.Text := Ini.ReadString(secMain, mainDescDir, '');
 
   //assigning text to a dropdown list seems not to work. (focus?)
     //lbOutType.ItemIndex := Ini.ReadInteger(secMain, mainGenerateFormat, 0);
@@ -1144,6 +1159,12 @@ begin
   edOutput.buSelDirClick(Sender);
 end;
 
+procedure TDocMain.edDescDirbuSelectClick(Sender: TObject);
+begin
+//select directory for description files
+  edDescDir.buSelDirClick(Sender);
+end;
+
 procedure TDocMain.buGenerateClick(Sender: TObject);
 var
   //Files: TStringList;
@@ -1272,6 +1293,7 @@ try
   PasDoc1.ProjectName := edProjectName.Text;
   PasDoc1.IntroductionFileName := edIntro.Text;
   PasDoc1.ConclusionFileName := edConclusion.Text;
+  PasDoc1.DescriptionDirectory := edDescDir.Text;
 
   PasDoc1.SourceFileNames.Clear;
   PasDoc1.AddSourceFileNames(lbFiles.Items);
@@ -1490,6 +1512,51 @@ begin
   end;
 end;
 
+procedure TDocMain.mnEdNodeClick(Sender: TObject);
+begin
+//Edit node
+//for now:
+  EditBox.Show;
+end;
+
+procedure TDocMain.tvUnitsContextPopup(Sender: TObject; MousePos: TPoint;
+  var Handled: Boolean);
+var
+  n: TTreeNode;
+  item: TDescriptionItem;
+  pi: TPasItem;
+  u: TPasUnit;
+begin
+  Handled := True;
+//edit node (by default)
+  n := tvUnits.GetNodeAt(MousePos.X, MousePos.Y);
+  if (n = nil) or (n.Data = nil) then
+    exit;
+  if not (TObject(n.Data) is TDescriptionItem) then begin
+  //file?
+    exit;
+  end;
+  item := TDescriptionItem(n.Data);
+  if item is TPasUnit then begin
+  //edit file
+    u := TPasUnit(item);
+    pi := u;
+  end else if item is TPasItem then begin
+  //edit item
+    pi := TPasItem(item);
+    u := pi.MyUnit;
+  end else
+    exit; //no PasItem
+  if u = nil then
+    exit;
+//load unit file
+  EditBox.DescDir := edDescDir.Text;
+  EditBox.LoadUnit(u);
+  EditBox.SelectItem(pi);
+//for now:
+  EditBox.Show;
+end;
+
 procedure TDocMain.tvUnitsClick(Sender: TObject);
 var
   Item: TDescriptionItem;
@@ -1583,6 +1650,11 @@ procedure TDocMain.buClrDocClick(Sender: TObject);
 begin
   PasDoc_Items.Logger := self.PasDocWarning;
   PasDoc1.AllUnits.Clear;
+end;
+
+procedure TDocMain.mnEditDocsClick(Sender: TObject);
+begin
+  EditBox.Show;
 end;
 
 end.

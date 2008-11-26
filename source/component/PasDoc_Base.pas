@@ -68,6 +68,7 @@ type
     AspellLanguage: string;
     AutoLinkExclude: TStringList;
 
+    DescriptionDirectory: string;
     DescriptionFileNames: TStringVector;
     { destination directory for documentation; must include terminating
       forward slash or backslash so that valid file names can be created
@@ -250,6 +251,11 @@ type
   } //@code(cmd: --conclusion <file>)
     property ConclusionFileName: string read Options.ConclusionFileName
       write Options.ConclusionFileName;
+  {Search for description files in this directory.
+    To become path?
+  } //-@code(cmd: -?, --description_directory <dir>)
+    property DescriptionDirectory: string read Options.DescriptionDirectory
+      write Options.DescriptionDirectory;
   {Read descriptions from these files.
   } //@code(cmd: -R, --description <file>)
     property DescriptionFileNames: TStringVector
@@ -1178,6 +1184,8 @@ begin //Execute
 
   { Make sure all IncludeDirectories end with a Path Separator. }
   IncludeDirectories.Iterate( {$IFDEF FPC}@{$ENDIF} IncludeTrailingPathDelimiter);
+  if DescriptionDirectory <> '' then
+    DescriptionDirectory := IncludeTrailingPathDelimiter(DescriptionDirectory);
 
   t1 := Now;
   ParseFiles;
@@ -1369,7 +1377,13 @@ begin
   //try auto-include *.txt
     p := ChangeFileExt(p, '.txt');
     if FileExists(p) then
-      Self.DescriptionFileNames.AddNotExisting(p);
+      Self.DescriptionFileNames.AddNotExisting(p)
+    else if DescriptionDirectory <> '' then begin
+    //search dedicated directory
+      p := DescriptionDirectory + ExtractFileName(p);
+      if FileExists(p) then
+        DescriptionFileNames.AddNotExisting(p);
+    end;
   end;
 
   ParseExternalFile(IntroductionFileName, Options.Introduction);

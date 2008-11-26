@@ -3,7 +3,7 @@ unit PasDoc_Main;
 
 interface
 
-{ This is the main procedure of PasDoc, it does everyting. }
+{ This is the main procedure of PasDoc, it does everything. }
 procedure Main;
 
 implementation
@@ -44,6 +44,7 @@ type
     OptionConditionalFile: TStringOptionList; //<Directives
     OptionCSS: TStringOption; { Using external CSS file for HTML output }
     OptionDefine: TStringOptionList;  //<Directives
+    OptionDescriptionDir: TStringOption; //<DescriptionDirectory
     OptionDescriptions: TStringOptionList;  //<DescriptionFileNames
     OptionFooter: TStringOption;
     OptionFormat: TStringOption;
@@ -124,6 +125,10 @@ begin
   OptionDefine := TStringOptionList.Create('D', 'define');
   OptionDefine.Explanation := 'Define conditional';
   AddOption(OptionDefine);
+
+  OptionDescriptionDir := TStringOption.Create(#0, 'description_directory');
+  OptionDescriptionDir.Explanation := 'Where to search for description files (*.txt for *.pas)';
+  AddOption(OptionDescriptionDir);
 
   OptionDescriptions := TStringOptionList.Create('R', 'description');
   OptionDescriptions.Explanation := 'Read description from this file';
@@ -458,6 +463,7 @@ begin
   PasDoc.ProjectName := OptionName.Value;
 
   PasDoc.DescriptionFileNames.Assign(OptionDescriptions.Values);
+  PasDoc.DescriptionDirectory := OptionDescriptionDir.Value;
 
   for i := 0 to OptionSourceList.Values.Count - 1 do begin
     PasDoc.AddSourceFileNamesFromFile(OptionSourceList.Values[i], true);

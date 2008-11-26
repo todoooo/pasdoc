@@ -21,7 +21,7 @@ object DocMain: TDocMain
     Top = 0
     Width = 611
     Height = 425
-    ActivePage = tabGenerate
+    ActivePage = tabLocs
     Align = alClient
     TabOrder = 0
     object tabOpts: TTabSheet
@@ -349,14 +349,14 @@ object DocMain: TDocMain
       ImageIndex = 1
       inline lbInclude: TDirList
         Left = 0
-        Top = 58
+        Top = 87
         Width = 603
-        Height = 339
+        Height = 310
         Align = alClient
         TabOrder = 0
         inherited GroupBox1: TGroupBox
           Width = 603
-          Height = 339
+          Height = 310
           Caption = 'Include Directories'
           inherited buAddAll: TButton
             OnClick = lbIncludebuAddAllClick
@@ -366,11 +366,12 @@ object DocMain: TDocMain
           end
           inherited lbFiles: TListBox
             Width = 599
-            Height = 287
+            Height = 258
           end
         end
         inherited dlgAdd: TOpenDialog
           FilterIndex = 2
+          Top = 68
         end
       end
       inline edIntro: TDirBox
@@ -416,6 +417,30 @@ object DocMain: TDocMain
         end
         inherited dlgOpen: TOpenDialog
           Title = 'Select Conclusion file'
+        end
+      end
+      inline edDescDir: TDirBox
+        Left = 0
+        Top = 58
+        Width = 603
+        Height = 29
+        Align = alTop
+        TabOrder = 3
+        inherited Label1: TLabel
+          Width = 58
+          Caption = 'Descriptions'
+        end
+        inherited edFile: TEdit
+          Left = 80
+          Width = 481
+        end
+        inherited buSelect: TButton
+          Left = 568
+          OnClick = edDescDirbuSelectClick
+        end
+        inherited dlgOpen: TOpenDialog
+          DefaultExt = 'txt'
+          Title = 'Select DescriptionFiles directory'
         end
       end
     end
@@ -899,6 +924,7 @@ object DocMain: TDocMain
         Indent = 19
         TabOrder = 0
         OnClick = tvUnitsClick
+        OnContextPopup = tvUnitsContextPopup
       end
       object Panel1: TPanel
         Left = 244
@@ -1001,6 +1027,11 @@ object DocMain: TDocMain
       Caption = '&Edit'
       object Preferences1: TMenuItem
         Caption = '&Preferences'
+        Enabled = False
+      end
+      object mnEditDocs: TMenuItem
+        Caption = '&Descriptions'
+        OnClick = mnEditDocsClick
       end
     end
     object Help1: TMenuItem
@@ -1050,6 +1081,14 @@ object DocMain: TDocMain
     object SaveAs1: TMenuItem
       Caption = 'Save &As...'
       OnClick = SaveLog
+    end
+  end
+  object popTree: TPopupMenu
+    Left = 100
+    Top = 132
+    object mnEdNode: TMenuItem
+      Caption = '&Edit'
+      OnClick = mnEdNodeClick
     end
   end
 end

@@ -7,13 +7,15 @@ uses
   frDirs in 'frDirs.pas' {DirList: TFrame},
   frDir in 'frDir.pas' {DirBox: TFrame},
   fDocMain in 'fDocMain.pas' {DocMain},
-  test_groups in 'test_groups.pas';
+  test_groups in 'test_groups.pas',
+  fEditor in 'fEditor.pas' {EditBox};
 
 { $R pasdoc_gui.res}
 
 begin
   Application.Initialize;
   Application.CreateForm(TDocMain, DocMain);
+  Application.CreateForm(TEditBox, EditBox);
   Application.Run;
 end.
 
