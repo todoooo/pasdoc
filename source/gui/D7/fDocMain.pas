@@ -10,8 +10,6 @@ uses
   uShell, 
   PasDoc_Languages,
   PasDoc_Serialize,
-  //PasDoc_GenLatex, PasDoc_GenHtmlHelp, PasDoc_Gen, PasDoc_GenHtml,
-  //PasDoc_GenSimpleXML, PasDoc_GenFullXML, PasDoc_GenFullHtml,
   PasDoc_Base, PasDoc_Items,
   PasDoc_SortSettings,
   PasDoc_Types,
@@ -385,6 +383,7 @@ begin
     exit;
   lbLog.Items.Add(AMessage);
   lbLog.Refresh;
+  Application.ProcessMessages;
   if Pos(MisText, AMessage) =1 then begin
   //log misspelled word
     MisspelledWord := Copy(AMessage, Length(MisText)+1, MAXINT);

@@ -772,6 +772,11 @@ begin
   Result := nil;
 
   if IsEmpty(Units) then Exit;
+//clear search flags
+  for i := 0 to Units.Count - 1 do begin
+    U := Units.UnitAt[i];
+    u.Searched := False;
+  end;
 
   case Length(NameParts) of
     1: begin
@@ -1148,6 +1153,9 @@ var
     end;
   end;
 
+var
+  i: integer;
+  s: string;
 begin //Execute
 (* This is the generator version.
 *)
@@ -1183,7 +1191,17 @@ begin //Execute
   end;
 
   { Make sure all IncludeDirectories end with a Path Separator. }
+{$IFDEF old}
   IncludeDirectories.Iterate( {$IFDEF FPC}@{$ENDIF} IncludeTrailingPathDelimiter);
+{$ELSE}
+  for i := IncludeDirectories.Count - 1 downto 0 do begin
+    s := IncludeDirectories[i];
+    if s = '' then
+      IncludeDirectories.Delete(i)
+    else
+      IncludeDirectories[i] := IncludeTrailingPathDelimiter(s);
+  end;
+{$ENDIF}
   if DescriptionDirectory <> '' then
     DescriptionDirectory := IncludeTrailingPathDelimiter(DescriptionDirectory);
 

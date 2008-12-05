@@ -72,15 +72,15 @@ type
     FSymbols: TStringPairVector;
   {$ENDIF}
 
-    FIncludeFilePaths: TStringVector;
   {$IFDEF old}
     FOnMessage: TPasDocMessageEvent;
     FVerbosity: Cardinal;
+    FIncludeFilePaths: TStringVector;
+    property IncludeFilePaths: TStringVector read FIncludeFilePaths;
   {$ELSE}
     FDoc: TPasDoc;
   {$ENDIF}
     FHandleMacros: boolean;
-    property IncludeFilePaths: TStringVector read FIncludeFilePaths;
 
     { Removes symbol Name from the internal list of symbols.
       If Name was not in that list, nothing is done. }
@@ -395,13 +395,12 @@ begin
 {$IFDEF old}
   FTokenizers[0] := TTokenizer.Create(s, CmdOptions.OnMessage, CmdOptions.Verbosity,
     AStreamName, AStreamPath);
+  FIncludeFilePaths := TStringVector.Create;
 {$ELSE}
   FTokenizers[0] := TTokenizer.Create(FDoc, s, AStreamName, AStreamPath);
 {$ENDIF}
   FCurrentTokenizer := 0;
   FBufferedToken := nil;
-
-  FIncludeFilePaths := TStringVector.Create;
 end;
 
 { ---------------------------------------------------------------------------- }
@@ -417,8 +416,10 @@ begin
   end;
 
   FBufferedToken.Free;
+{$IFDEF old}
   FIncludeFilePaths.Free;
-
+{$ELSE}
+{$ENDIF}
   inherited;
 end;
 
@@ -800,6 +801,15 @@ var
   var
     Name: string;
   begin
+  {$IFDEF old}
+    if Path = '' then begin
+    //this should never happen
+      Result := False;
+      exit;
+    end;
+  {$ELSE}
+    //checked in TPasDoc
+  {$ENDIF}
     Name := Path + N;
     FDoc.DoMessage(5, pmtInformation, 'Trying to open include file "%s"...', [Name]);
     Result := FileExists(Name);
@@ -820,10 +830,10 @@ var
   var
     I: Integer;
   begin
-    for I := 0 to IncludeFilePaths.Count - 1 do
-      if IncludeFilePaths[I] <> '' then
+    for I := 0 to FDoc.IncludeDirectories.Count - 1 do
+      //if FDoc.IncludeDirectories[I] <> '' then
       begin
-        Result := TryOpen(IncludeFilePaths[I]);
+        Result := TryOpen(FDoc.IncludeDirectories[I]);
         if Result then Exit;
       end;
       

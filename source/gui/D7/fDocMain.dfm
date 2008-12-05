@@ -21,7 +21,7 @@ object DocMain: TDocMain
     Top = 0
     Width = 611
     Height = 425
-    ActivePage = tabFiles
+    ActivePage = tabGenerate
     Align = alClient
     TabOrder = 0
     object tabOpts: TTabSheet

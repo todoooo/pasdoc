@@ -1139,7 +1139,7 @@ procedure TDocGenerator.HandleInheritedTag(
   end;
 
 var
-  TheObject: TPasCio;
+  //TheObject: TPasCio;
   InheritedItem: TDescriptionItem;
   PasItem: TPasItem;
 begin

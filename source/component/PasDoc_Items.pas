@@ -1469,6 +1469,8 @@ end;
 
     procedure Sort(const SortSettings: TSortSettings); override;
   public
+  //Unit has been searched in global search. Blocks recursive search.
+    Searched: boolean;
     { list of classes, interfaces, objects, and records defined in this unit }
     property CIOs: TMemberListItem read FCIOs;
     { list of constants defined in this unit }
@@ -2436,7 +2438,7 @@ begin
     Result := Members.FindName(ItemName)
   else
     Result := nil;
-  if Result = nil then
+  if (Result = nil) then
     Result := FindItemInAncestors(ItemName);
 end;
 
@@ -3156,13 +3158,15 @@ var
   i: integer;
   uitem: TPasUnit;
 begin
-  for i := 0 to UsesUnits.Count - 1 do begin
-    //uitem := UsesUnits.Items[i].PasItem as TPasUnit;
-    uitem := UsedUnit[i];
-    if uitem <> nil then begin
-      Result := uitem.FindItem(ItemName) as TPasItem;
-      if Result <> nil then
-        exit;
+  if not Searched then begin
+    Searched := True;
+    for i := 0 to UsesUnits.Count - 1 do begin
+      uitem := UsedUnit[i];
+      if uitem <> nil then begin
+        Result := uitem.FindItem(ItemName) as TPasItem;
+        if Result <> nil then
+          exit;
+      end;
     end;
   end;
 //if nothing searched and found
