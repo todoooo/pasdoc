@@ -921,8 +921,6 @@ end;
 { ---------- }
 
 function TTexDocGenerator.HasDescription(const AItem: TPasItem): boolean;
-var
-  Ancestor: TPasCio; // TBaseItem;
 begin
   Result := false;
   if not Assigned(AItem) then Exit;
@@ -939,38 +937,14 @@ begin
       TPasMethod(AItem).HasMethodOptionalInfo ) or
     { Seealso section ? }
     (AItem.SeeAlso.Count <> 0);
-
-  if Result then Exit;
-
-{ TODO :
-Searching for descriptions in ancestors can be implemented in TPasItem.
-This search will recurse into all ancestors.
-Alternatively TPasItem.HasDescription can do that search already,
-but then a parameter seems to be useful, to distinguish between
-RawDescription and FullDescription. (contact DoDi) }
-  if (AItem is TPasCio) then begin
-  // and not StringVectorIsNilOrEmpty(TPasCio(AItem).Ancestors) then
-    Ancestor := TPasCio(AItem).FirstAncestor;
-    while Assigned(Ancestor) {and (Ancestor is TPasItem)} do begin
-      HasDescription := HasDescription(Ancestor);
-      if Result then
-        exit;
-      Ancestor := Ancestor.FirstAncestor;
-    end;
-  end;
 end;
 
 procedure TTexDocGenerator.WriteItemLongDescription(const AItem: TPasItem;
   AlreadyWithinAList: boolean);
 
   { writes the parameters or exceptions list }
-{$IFDEF old}
-  procedure WriteParamsOrRaises(Func: TPasMethod; const Caption: string;
-    List: TStringPairVector; LinkToParamNames: boolean);
-{$ELSE}
   procedure WriteParamsOrRaises(Func: TPasMethod; const Caption: string;
     List: TDescriptionItem; LinkToParamNames: boolean);
-{$ENDIF}
 
     procedure WriteParameter(const ParamName: string; const Desc: string);
     begin
@@ -1007,11 +981,7 @@ procedure TTexDocGenerator.WriteItemLongDescription(const AItem: TPasItem;
     WriteDirect('\end{description}',true);
   end;
 
-{$IFDEF old}
-  procedure WriteSeeAlso(SeeAlso: TStringPairVector);
-{$ELSE}
   procedure WriteSeeAlso(SeeAlso: TDescriptionItem);
-{$ENDIF}
   var
     i: integer;
     SeeAlsoItem: TBaseItem;

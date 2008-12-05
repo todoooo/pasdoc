@@ -131,6 +131,8 @@ type
     mnEditDocs: TMenuItem;
     popTree: TPopupMenu;
     mnEdNode: TMenuItem;
+    N2: TMenuItem;
+    mnCancelNode: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure lbOutTypeChange(Sender: TObject);
     procedure lbOutLangChange(Sender: TObject);
@@ -167,7 +169,6 @@ type
     procedure buClrDocClick(Sender: TObject);
     procedure edDescDirbuSelectClick(Sender: TObject);
     procedure mnEditDocsClick(Sender: TObject);
-    procedure mnEdNodeClick(Sender: TObject);
     procedure tvUnitsContextPopup(Sender: TObject; MousePos: TPoint;
       var Handled: Boolean);
   private
@@ -213,6 +214,7 @@ type
     // @name fills @link(tvUnits) with a hierarchical representation of the
     // TPasItems in PasDoc1.
     procedure FillTreeView;
+    procedure EditNode(n: TTreeNode);
 
   //generator: .Generator:
   //HTML header: .Generator.Header: string;
@@ -964,35 +966,8 @@ end;
 // -------------- output format ------------
 
 procedure TDocMain.lbOutTypeChange(Sender: TObject);
-//event handler (comboGenerateFormat)
-//var  f: boolean;
 begin
-{$IFDEF old}
-{ TODO -oDoDi -cDelphi port : enum for output types }
-//plain HTML
-  f := lbOutType.ItemIndex = 0;
-  swTipue.Enabled := f; // lbOutType.ItemIndex = 0;
-//not plain HTML
-  edProjectName.Enabled := not f; // lbOutType.ItemIndex <> 0;
-  //SetColorFromEnabled(edProjectName);
-//all HTML
-  f := lbOutType.ItemIndex in [0,1];
-  tabHTML.TabVisible := f;  // Ord(lbOutType.ItemIndex in [0,1]);
-  edCSS.Enabled := f; //lbOutType.ItemIndex in [0,1];
-  //SetColorFromEnabled(EditCssFileName);
-//not HTML
-{$IFDEF fpc}
-  PageLatexOptions.TabVisible := not f; // Ord(lbOutType.ItemIndex in [2,3]);
-  comboLatexGraphicsPackage.Enabled := not f; //lbOutType.ItemIndex in [2,3];
-{$ELSE}
-  tabGraph.TabVisible := not f;
-{$ENDIF}
-{$ELSE}
-{$ENDIF}
-
 //general options
-  //tabSpelling.Visible := CheckIfSpellCheckingAvailable;
-  //FillNavigationListBox; -> Tabs
   PasDoc1.DocType := lbOutType.Text;
   HasChanged := true;
 end;
@@ -1512,49 +1487,14 @@ begin
   end;
 end;
 
-procedure TDocMain.mnEdNodeClick(Sender: TObject);
-begin
-//Edit node
-//for now:
-  EditBox.Show;
-end;
-
 procedure TDocMain.tvUnitsContextPopup(Sender: TObject; MousePos: TPoint;
   var Handled: Boolean);
-var
-  n: TTreeNode;
-  item: TDescriptionItem;
-  pi: TPasItem;
-  u: TPasUnit;
 begin
   Handled := True;
+  //mnEditDocsClick(Sender);
+  EditNode(tvUnits.GetNodeAt(MousePos.X, MousePos.Y));
 //edit node (by default)
-  n := tvUnits.GetNodeAt(MousePos.X, MousePos.Y);
-  if (n = nil) or (n.Data = nil) then
-    exit;
-  if not (TObject(n.Data) is TDescriptionItem) then begin
-  //file?
-    exit;
-  end;
-  item := TDescriptionItem(n.Data);
-  if item is TPasUnit then begin
-  //edit file
-    u := TPasUnit(item);
-    pi := u;
-  end else if item is TPasItem then begin
-  //edit item
-    pi := TPasItem(item);
-    u := pi.MyUnit;
-  end else
-    exit; //no PasItem
-  if u = nil then
-    exit;
-//load unit file
-  EditBox.DescDir := edDescDir.Text;
-  EditBox.LoadUnit(u);
-  EditBox.SelectItem(pi);
-//for now:
-  EditBox.Show;
+  //n := tvUnits.GetNodeAt(MousePos.X, MousePos.Y);
 end;
 
 procedure TDocMain.tvUnitsClick(Sender: TObject);
@@ -1654,6 +1594,40 @@ end;
 
 procedure TDocMain.mnEditDocsClick(Sender: TObject);
 begin
+  //EditBox.Show;
+  EditNode(tvUnits.Selected);
+end;
+
+procedure TDocMain.EditNode(n: TTreeNode);
+var
+  item: TDescriptionItem;
+  pi: TPasItem;
+  u: TPasUnit;
+begin
+  if (n = nil) or (n.Data = nil) then
+    exit;
+  if not (TObject(n.Data) is TDescriptionItem) then begin
+  //file?
+    exit;
+  end;
+  item := TDescriptionItem(n.Data);
+  if item is TPasUnit then begin
+  //edit file
+    u := TPasUnit(item);
+    pi := u;
+  end else if item is TPasItem then begin
+  //edit item
+    pi := TPasItem(item);
+    u := pi.MyUnit;
+  end else
+    exit; //no PasItem
+  if u = nil then
+    exit;
+//load unit file
+  EditBox.DescDir := edDescDir.Text;
+  EditBox.LoadUnit(u);
+  EditBox.SelectItem(pi);
+//for now:
   EditBox.Show;
 end;
 

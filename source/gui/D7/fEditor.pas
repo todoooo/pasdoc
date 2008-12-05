@@ -1,4 +1,16 @@
 unit fEditor;
+(*< @abstract(Editor for external description files.)
+  The editor allows to create and update external description files,
+  residing in the Descriptions directory.
+  Navigation between the items is implemented in various ways:
+
+  - select from the combo box of all items
+
+  - dbl click into the source, at or past the item to select
+
+  - use the arrow buttons the select the next/previous item.
+  The hollow arrows select items without any description.
+*)
 
 interface
 
@@ -15,14 +27,31 @@ type
     Panel1: TPanel;
     Panel2: TPanel;
     edRem: TMemo;
-    buInit: TButton;
     buSave: TButton;
     cbItem: TComboBox;
     edDesc: TMemo;
+    buPrev: TButton;
+    buNext: TButton;
+    buPrevEmpty: TButton;
+    buNextEmpty: TButton;
+    buPrevParent: TButton;
+    buNextParent: TButton;
     procedure buSaveClick(Sender: TObject);
     procedure cbItemChange(Sender: TObject);
     procedure edRemChange(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure udAllChangingEx(Sender: TObject; var AllowChange: Boolean;
+      NewValue: Smallint; Direction: TUpDownDirection);
+    procedure cbItemSelect(Sender: TObject);
+    procedure udEmptyClick(Sender: TObject; Button: TUDBtnType);
+    procedure udAllClick(Sender: TObject; Button: TUDBtnType);
+    procedure buPrevClick(Sender: TObject);
+    procedure buNextClick(Sender: TObject);
+    procedure buPrevEmptyClick(Sender: TObject);
+    procedure buNextEmptyClick(Sender: TObject);
+    procedure edSrcDblClick(Sender: TObject);
+    procedure buPrevParentClick(Sender: TObject);
+    procedure buNextParentClick(Sender: TObject);
   private
     CurUnit: TPasUnit;
     CurItem: TPasItem; //intro/conclusion???
@@ -33,6 +62,8 @@ type
     procedure LoadDescFile(const fn: string);
     procedure SaveRem;
     procedure SaveFile;
+    procedure ItemChange(i: integer);
+    function  DescribedItem(item: TPasItem): TPasItem;
   public
     DescDir: string;
     procedure LoadUnit(U: TPasUnit);
@@ -143,7 +174,7 @@ begin //LoadDescFile
       a := '';
       for i := 0 to lst.Count - 1 do begin
         s := lst[i];
-        if s[1] = '#' then begin //found anchor
+        if (s <> '') and (s[1] = '#') then begin //found anchor
         //save preceding item
           SaveItem;
         //init next anchor
@@ -197,6 +228,7 @@ begin
   finally
     strm.Free;
   end;
+  FileChanged := False;
 end;
 
 procedure TEditBox.SaveRem;
@@ -217,35 +249,64 @@ end;
 
 //----------------------- GUI ---------------------------------
 
+procedure TEditBox.cbItemSelect(Sender: TObject);
+begin
+  ItemChange(cbItem.ItemIndex);
+end;
+
 procedure TEditBox.cbItemChange(Sender: TObject);
+begin
+  ItemChange(cbItem.ItemIndex);
+end;
+
+function TEditBox.DescribedItem(item: TPasItem): TPasItem;
+begin
+(* Find an item with a description.
+  If docs have been created, the PasItem also contains inherited descriptions,
+  else the ancestry must be inspected.
+  Further calls try FirstAncestorItem, for inherited descriptions.
+*)
+  Result := item.PasItem; //resolve delegates, from editor or class ancestry
+  while (Result <> nil) and not Result.HasDescription and (Result.RawDescription = '') do
+    Result := Result.FirstAncestorItem.PasItem;
+end;
+
+procedure TEditBox.ItemChange(i: integer);
 var
-  i, ifp: integer;
+  ifp: integer;
+  PasItem: TPasItem;
 begin
   SaveRem;
   edRem.Clear;
+  edDesc.Clear;
   CurItem := nil;
+{$IFDEF old}
   i := cbItem.ItemIndex;
+{$ELSE}
+{$ENDIF}
   if i < 0 then
     exit;
+  cbItem.ItemIndex := i;
   TObject(CurItem) := cbItem.Items.Objects[i];
-  edRem.Text := CurItem.Value;
-  //edDesc.Text := CurItem.PasItem.DetailedDescription; //valid in analysis?
-  //if edDesc.Text = '' then
-    edDesc.Text := CurItem.PasItem.RawDescription;
 //in source
-  //CurItem := item;
-  //edLink.Text := item.QualifiedName;
-  //cbItem.Text := item.QualifiedName; //select it?
-  ifp := CurItem.PasItem.NamePosition;
+  PasItem := CurItem.PasItem;
+  ifp := PasItem.NamePosition;
   if ifp >= 0 then begin
   //hilite declaration
     edSrc.SelLength := 0;
     edSrc.SelStart := ifp;
-    edSrc.SelLength := Length(CurItem.PasItem.Name);
-    //edSrc.Refresh;
-  //search description
+    edSrc.SelLength := Length(PasItem.Name);
   end else
     edSrc.SelLength := 0;
+//item
+  edRem.Text := CurItem.Value;
+  PasItem := DescribedItem(CurItem.PasItem); //resolve delegate, search for inherited description
+  if PasItem <> nil then begin
+    edDesc.Text := PasItem.RawDescription; //else no description at all
+    if edDesc.Text = '' then //also try inherited description
+      edDesc.Text := PasItem.AbstractDescription + PasItem.DetailedDescription; //valid in analysis?
+  end else
+    edDesc.Text := '';
 end;
 
 procedure TEditBox.edRemChange(Sender: TObject);
@@ -273,6 +334,159 @@ begin
     end;
   end;
   CanClose := True;
+end;
+
+procedure TEditBox.udAllChangingEx(Sender: TObject;
+  var AllowChange: Boolean; NewValue: Smallint;
+  Direction: TUpDownDirection);
+begin
+(* select the prev/next item.
+  The new position should depend on the currently selected item,
+  the up/down position should be ignored/adjusted accordingly.
+  Wrap around?
+*)
+  case Direction of
+  updUp:  //select previous item
+    AllowChange := NewValue >= 0;
+  updDown:  //select next item
+    AllowChange := NewValue < cbItem.Items.Count;
+  end;
+  if AllowChange then
+    ItemChange(NewValue);
+end;
+
+(* The Button property is absolutely unreliable :-(
+  That's why I use distinct buttons for the UpDown controls.
+*)
+
+procedure TEditBox.buPrevParentClick(Sender: TObject);
+var
+  i: integer;
+  item: TDescriptionItem;
+  par: TPasItem;
+begin
+  i := cbItem.ItemIndex;
+  if i < 1 then
+    exit;
+  TObject(item) := cbItem.Items.Objects[i];
+  par := item.PasItem.MyOwner;
+  if par = nil then
+    exit;
+  repeat
+    dec(i);
+    TObject(item) := cbItem.Items.Objects[i];
+    if item.PasItem = par then
+      break;
+  until i < 1;
+  ItemChange(i);
+end;
+
+procedure TEditBox.buNextParentClick(Sender: TObject);
+var
+  i, n: integer;
+  item: TDescriptionItem;
+  par: TPasItem;
+begin
+  i := cbItem.ItemIndex;
+  if i < 1 then
+    exit;
+  TObject(item) := cbItem.Items.Objects[i];
+  par := item.PasItem.MyOwner;
+  if par = nil then
+    exit;
+  n := cbItem.Items.Count - 1;
+  while i < n do begin
+    inc(i);
+    TObject(item) := cbItem.Items.Objects[i];
+    if item.PasItem.MyOwner <> par then
+      break;
+  end;
+  ItemChange(i);
+end;
+
+procedure TEditBox.udAllClick(Sender: TObject; Button: TUDBtnType);
+var
+  i: integer;
+begin
+(* Move to the next/prev item
+*)
+  i := cbItem.ItemIndex;
+  case Button of
+  btNext: inc(i);
+  btPrev: dec(i);
+  end;
+  if cardinal(i) < cardinal(cbItem.Items.count) then begin
+    //udEmpty.Position := i;
+    //udAll.Position := i;
+    ItemChange(i);
+  end;
+end;
+
+procedure TEditBox.udEmptyClick(Sender: TObject; Button: TUDBtnType);
+var
+  i, d: integer;
+  item: TDescriptionItem;
+  described: boolean;
+begin
+(* Move to the next/prev item without a description.
+  The items in the combo box are delegates, so
+  descriptions must be searched in the PasItem.
+  If no docs are created, search for inherited descriptions.
+*)
+  i := cbItem.ItemIndex;
+  case Button of
+  btNext: d := 1;
+  //btPrev:
+  else d := -1;
+  end;
+  i := i+d;
+  while cardinal(i) < cardinal(cbItem.Items.count) do begin
+    TObject(item) := cbItem.Items.Objects[i];
+    described := (item.Value <> '') //external description?
+      or (DescribedItem(item.PasItem) <> nil);
+    if not described then begin //no description available
+      ItemChange(i);
+      break;
+    end;
+    i := i+d; //try next item
+  end;
+end;
+
+procedure TEditBox.buPrevClick(Sender: TObject);
+begin
+  udAllClick(Sender, btPrev);
+end;
+
+procedure TEditBox.buNextClick(Sender: TObject);
+begin
+  udAllClick(Sender, btNext);
+end;
+
+procedure TEditBox.buPrevEmptyClick(Sender: TObject);
+begin
+  udEmptyClick(Sender, btPrev);
+end;
+
+procedure TEditBox.buNextEmptyClick(Sender: TObject);
+begin
+  udEmptyClick(Sender, btNext);
+end;
+
+procedure TEditBox.edSrcDblClick(Sender: TObject);
+var
+  i, p: integer;
+  item: TDescriptionItem;
+begin
+(* select the item at or before the current position.
+*)
+  p := edSrc.SelStart; //point of click?
+  for i := cbItem.Items.Count - 1 downto 0 do begin
+    TObject(item) := cbItem.Items.Objects[i];
+    if item.PasItem.NamePosition <= p then begin
+      ItemChange(i);
+      break;
+    end;
+  end;
 end;
 
 end.

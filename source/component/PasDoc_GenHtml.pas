@@ -238,6 +238,7 @@ type
     function GetFileExtension: string; override;
   end;
 
+{$IFDEF old}
   { This is the old TGenericHTMLDocGenerator. }
   THTMLDocGenerator = class(TGenericHTMLDocGenerator)
   protected
@@ -291,6 +292,8 @@ type
       and creates overview files. }
     procedure WriteDocumentation; override;
   end;
+{$ELSE}
+{$ENDIF}
 
 const
   DefaultPasdocCss = {$I pasdoc.css.inc};
@@ -1341,6 +1344,7 @@ begin
   Result := Result + '</ol>' + LineEnding;
 end;
 
+{$IFDEF old}
 { THTMLDocGenerator }
 
 function THTMLDocGenerator.CreateLink(const Item: TBaseItem): string;
@@ -1449,14 +1453,13 @@ const
       WriteDirectLine('<li class="ancestor">' +
         MakeItemLink(CIO, CIO.Name, lcNormal) + '</li>')
     end;
-    { todo --check: Is it possible that the item is assigned but is not a TPasCio ?
+    { Is it possible that the item is assigned but is not a TPasCio ?
       Answer: type A = B; will result in an ordinary type A, even if B is a CIO.
       Type inheritance should be handled in the parser.
     }
   end;
 
 var
-  //i: Integer;
   s: string;
   SectionsAvailable: TSectionSet;
   SectionHeads: array[TSections] of string;
@@ -1994,7 +1997,6 @@ procedure THTMLDocGenerator.WriteOverviewFiles;
 
   { Writes a Hierarchy list - this is more useful than the simple class list }
   procedure WriteHierarchy;
-  { todo -o twm: Make this recursive to handle closing </li> easily }
 
     procedure WriteLevel(lst: TDescriptionItem);
     var
@@ -2377,5 +2379,8 @@ begin
   WriteEndOfDocument;
   CloseStream;
 end;
+{$ELSE}
+  //use TFullHTMLgenerator
+{$ENDIF}
 
 end.

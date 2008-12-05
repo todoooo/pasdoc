@@ -15,13 +15,10 @@
 unit PasDoc_Parser;
 
 (* ToDo:
-- use format string for construction of FullDeclaration.
-- chain comments on items.
-- handle block comment (unchained).
+- handle block comment (unchained)???
 - handle nested declarations (also: generators!)
 - parse implementation section
   (using declaration+definition positions, for methods)
-- define description sections.
 *)
 
 {.$DEFINE ParseParams} //-parse parameter lists? (todo)
@@ -1223,24 +1220,22 @@ or
   FDoc.DoMessage(5, pmtInformation, 'Parsing class/interface/object "%s"',
     [Ident.Data]);  //[CioName]);
   { Test for forward class definition here:
-      class MyClass = class;
-    with no ancestor or class members listed after the word class. }
+      class MyClass = class; }
   if Skip(SYM_SEMICOLON) then
     Exit;  // No error, continue the parsing.
 
   i := CreateItem(TPasCio, CIOType, Ident) as TPasCio;
 
+//class directive?
   if PeekNextToken = TOK_IDENTIFIER then begin
     if (Peeked.Directive in [SD_ABSTRACT, SD_SEALED]) then begin
       i.HasAttribute[Peeked.Directive] := True;
       GetNextToken;
     end;
   end;
-  { get ancestor and all interfaces; remember, this could look like
-    TNewClass = class ( Classes.TClass, MyClasses.TFunkyClass, MoreClasses.YAC) ... end;
-    Every entry but the first must be an interface. }
+//ancestors?
   if Skip(SYM_LEFT_PARENTHESIS) and not Skip(SYM_RIGHT_PARENTHESIS) then begin
-    repeat //parse ancestor (ident) list
+    repeat
     //start recording ancestor
       i.FullDeclaration := i.FullDeclaration + Recorded;
       QualId(True); FreeAndNil(Identifier);
@@ -1249,7 +1244,6 @@ or
     Expect(SYM_RIGHT_PARENTHESIS);
   end else
     AddDefaultAncestor;
-
 //GUID?
   if Skip(SYM_LEFT_BRACKET) then begin
     GetNextToken;
@@ -1292,10 +1286,6 @@ or
       END terminates the member list,
       everything else starts a member declaration.
     *)
-
-    { This is needed to include ClassKeyWordString in
-      class methods declarations. }
-
     while GetNextToken <> KEY_END do begin  //repeat
       if Token.Directive in sAllVisibilities then begin
       //visibility
@@ -1325,7 +1315,7 @@ or
       end;
     //everything else should be a member declaration
       case Token.MyType of
-      KEY_CLASS:    ;
+      KEY_CLASS:    ; //record class method
       KEY_CONSTRUCTOR, KEY_DESTRUCTOR,
       KEY_FUNCTION, KEY_PROCEDURE:
         {M :=} ParseCDFP(Token.MyType, nil);
@@ -1344,6 +1334,7 @@ or
   end;  //parse item with members
 
   ParseHintDirectives(i);
+
 //how can a record case occur just here???
   if GetNextToken <> SYM_SEMICOLON then begin
     if IsInRecordCase then begin

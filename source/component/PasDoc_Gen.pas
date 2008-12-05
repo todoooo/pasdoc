@@ -500,13 +500,6 @@ type
      @link(TGenericHTMLDocGenerator) in writing the declaration of the class.}
     function GetClassDirectiveName(Directive: TClassDirective): string;
 
-  {$IFDEF old}
-    {@name writes a translation of MyType based on the current language.
-     However, 'record' and 'packed record' are not translated.}
-    function GetCIOTypeName(MyType: TCIOType): string;
-  {$ELSE}
-  {$ENDIF}
-
     { Searches for item with name S.
 
       If S is not splittable by SplitNameParts, returns nil.
@@ -1147,11 +1140,17 @@ procedure TDocGenerator.HandleInheritedTag(
 
 var
   TheObject: TPasCio;
-  InheritedItem: TPasItem;
+  InheritedItem: TDescriptionItem;
+  PasItem: TPasItem;
 begin
+{$IFDEF old}
   { TODO: this should be moved to TPasItem handler, so that @inherited
     is registered only for TPasItem (or, even better, for TPasCio
-    and TPasItem with MyObject <> nil). }
+    and TPasItem with MyObject <> nil).
+
+    This move would require that the generator object is passed to the
+    tag handlers!
+  }
 
   if FCurrentItem is TPasCio then begin
     TheObject := TPasCio(FCurrentItem);
@@ -1176,6 +1175,25 @@ begin
       InheritedCannotResolve('This item is not a member of a class/interface/etc.');
   end else
     InheritedCannotResolve('You can''t use @inherited here');
+{$ELSE}
+//untested!
+  if FCurrentItem is TPasItem then begin
+    InheritedItem := TPasItem(FCurrentItem).FirstAncestorItem;
+  //inherited item can be nil, delegate or Pas item.
+    if InheritedItem = nil then
+      InheritedCannotResolve(Format('Member "%s" has no ancestor',
+        [FCurrentItem.Name]))
+    else begin
+      PasItem := InheritedItem.PasItem;
+      if (PasItem = nil) or (PasItem.MyObject = nil) then
+      //unresolved delegate: only name of ancestor is available
+        ReplaceStr := InheritedItem.Name
+      else
+        ReplaceStr := MakeItemLink(PasItem,
+          PasItem.MyObject.Name + '.' + PasItem.Name, lcNormal);
+    end;
+  end;
+{$ENDIF}
 end;
 
 procedure TDocGenerator.HandleLinkTag(
@@ -1691,7 +1709,7 @@ begin
     { Tags with recursive params }
     TTag.Create(FTagManager, 'code',
       nil, {$IFDEF FPC}@{$ENDIF} HandleCodeTag,
-      [toParameterRequired, toRecursiveTags, toAllowOtherTagsInsideByDefault,
+      [toParameterRequired, //toRecursiveTags, toAllowOtherTagsInsideByDefault,
        toAllowNormalTextInside]);
     TTag.Create(FTagManager, 'bold',
       nil, {$IFDEF FPC}@{$ENDIF} HandleBoldTag,
@@ -1993,23 +2011,6 @@ begin
     result := '';
   end;
 end;
-
-{$IFDEF old}
-function TDocGenerator.GetCIOTypeName(MyType: TCIOType): string;
-begin
-{ TODO : split into token->tid, tid->name }
-  case MyType of
-  KEY_RECORD: Result := Language.Translation[trRecord];
-  KEY_CLASS: Result := Language.Translation[trClass];
-  KEY_DISPINTERFACE: Result := Language.Translation[trDispInterface];
-  KEY_INTERFACE: Result := Language.Translation[trInterface];
-  KEY_OBJECT: Result := Language.Translation[trObject];
-  else      Result := '';
-  end;
-end;
-{$ELSE}
-//should become a TPasItem method
-{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 

@@ -40,6 +40,7 @@ object EditBox: TEditBox
       ScrollBars = ssBoth
       TabOrder = 0
       WordWrap = False
+      OnDblClick = edSrcDblClick
     end
     object Panel1: TPanel
       Left = 476
@@ -58,14 +59,6 @@ object EditBox: TEditBox
         DesignSize = (
           519
           108)
-        object buInit: TButton
-          Left = 356
-          Top = 4
-          Width = 45
-          Height = 25
-          Caption = 'Init'
-          TabOrder = 0
-        end
         object buSave: TButton
           Left = 456
           Top = 4
@@ -73,30 +66,78 @@ object EditBox: TEditBox
           Height = 25
           Anchors = [akTop, akRight]
           Caption = 'Save'
-          TabOrder = 1
+          TabOrder = 0
           OnClick = buSaveClick
         end
         object cbItem: TComboBox
-          Left = 8
+          Left = 132
           Top = 8
-          Width = 313
+          Width = 293
           Height = 21
+          Hint = 'Select item to view its description'
           ItemHeight = 13
-          TabOrder = 2
+          TabOrder = 1
           Text = 'cbItem'
           OnChange = cbItemChange
+          OnSelect = cbItemSelect
         end
         object edDesc: TMemo
           Left = 8
-          Top = 36
+          Top = 44
           Width = 505
-          Height = 65
+          Height = 57
+          Hint = 'Description in source code'
           Anchors = [akLeft, akTop, akRight, akBottom]
           Lines.Strings = (
             'edDesc')
           ReadOnly = True
           ScrollBars = ssVertical
+          TabOrder = 2
+        end
+        object buPrev: TButton
+          Left = 8
+          Top = 4
+          Width = 21
+          Height = 17
+          Caption = #233
+          Font.Charset = SYMBOL_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Wingdings'
+          Font.Style = []
+          ParentFont = False
           TabOrder = 3
+          OnClick = buPrevClick
+        end
+        object buNext: TButton
+          Left = 8
+          Top = 20
+          Width = 21
+          Height = 17
+          Caption = #234
+          Font.Charset = SYMBOL_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Wingdings'
+          Font.Style = []
+          ParentFont = False
+          TabOrder = 4
+          OnClick = buNextClick
+        end
+        object buPrevParent: TButton
+          Left = 66
+          Top = 4
+          Width = 21
+          Height = 17
+          Caption = #245
+          Font.Charset = SYMBOL_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Wingdings'
+          Font.Style = []
+          ParentFont = False
+          TabOrder = 5
+          OnClick = buPrevParentClick
         end
       end
       object edRem: TMemo
@@ -104,6 +145,7 @@ object EditBox: TEditBox
         Top = 109
         Width = 519
         Height = 353
+        Hint = 'Enter or edit external description here'
         Align = alClient
         HideSelection = False
         Lines.Strings = (
@@ -112,5 +154,50 @@ object EditBox: TEditBox
         OnChange = edRemChange
       end
     end
+  end
+  object buPrevEmpty: TButton
+    Left = 512
+    Top = 20
+    Width = 21
+    Height = 17
+    Caption = #241
+    Font.Charset = SYMBOL_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Wingdings'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 1
+    OnClick = buPrevEmptyClick
+  end
+  object buNextEmpty: TButton
+    Left = 512
+    Top = 36
+    Width = 21
+    Height = 17
+    Caption = #242
+    Font.Charset = SYMBOL_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Wingdings'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 2
+    OnClick = buNextEmptyClick
+  end
+  object buNextParent: TButton
+    Left = 544
+    Top = 36
+    Width = 21
+    Height = 17
+    Caption = #247
+    Font.Charset = SYMBOL_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Wingdings'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 3
+    OnClick = buNextParentClick
   end
 end

@@ -21,7 +21,7 @@ object DocMain: TDocMain
     Top = 0
     Width = 611
     Height = 425
-    ActivePage = tabLocs
+    ActivePage = tabFiles
     Align = alClient
     TabOrder = 0
     object tabOpts: TTabSheet
@@ -920,11 +920,12 @@ object DocMain: TDocMain
         Top = 0
         Width = 241
         Height = 397
+        Hint = 'Right click on an node to edit...'
         Align = alLeft
         Indent = 19
+        PopupMenu = popTree
         TabOrder = 0
         OnClick = tvUnitsClick
-        OnContextPopup = tvUnitsContextPopup
       end
       object Panel1: TPanel
         Left = 244
@@ -1088,7 +1089,13 @@ object DocMain: TDocMain
     Top = 132
     object mnEdNode: TMenuItem
       Caption = '&Edit'
-      OnClick = mnEdNodeClick
+      OnClick = mnEditDocsClick
+    end
+    object N2: TMenuItem
+      Caption = '-'
+    end
+    object mnCancelNode: TMenuItem
+      Caption = 'Cancel'
     end
   end
 end

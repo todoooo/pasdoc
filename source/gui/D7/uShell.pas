@@ -1,5 +1,5 @@
 unit uShell;
-(* Wrap SHBrowseForFolder...
+(*< Wrap SHBrowseForFolder...
   Implement directory enumerator
 *)
 
@@ -10,20 +10,21 @@ uses
 
 type
   eFileEnum = (
-  //final (boolean) results
-    feFail, //False
-    feSucc, //True
-    feCont, //(continue enumeration)
-    feBreak //(stop enumeration of the directory entries)
+  //-final (boolean) results
+    feFail, //<False
+    feSucc, //<True
+  //-continue
+    feCont, //<(continue enumeration)
+    feBreak //<(stop enumeration of the directory entries)
   );
   TEnumFilesCallback = function(const dir, fn: string; const fd: TWIN32FindData;
     isDir: boolean): eFileEnum of object;
 
   eWantEntries = (
-    weFiles,  //want files
-    weDirs,   //want directories
-    //weLabel,  //want label?
-    weRecurse   //recurse into subdirectories
+    weFiles,  //<want files
+    weDirs,   //<want directories
+    //-weLabel,  //<want label?
+    weRecurse   //<recurse into subdirectories
   );
   sWantEntries = set of eWantEntries;
 
@@ -36,7 +37,7 @@ type
   public
   //list to add found files to - nil if not desired
     AddTo: TStrings;
-  //callbacks
+  //-callbacks
     function AddFiles(const dir, fn: string;
       const fd: TWIN32FindData; isDir: boolean): eFileEnum;
     function AddDirs(const dir, fn: string;
@@ -56,7 +57,6 @@ type
     property Found: TWIN32FindData read fd;
   end;
 
-//function KillAllFiles(const dir: string; fRecurse: boolean = False): boolean;
 function KillAllFiles(const dir: string; fWant: sWantEntries = [weFiles]): boolean;
 
 function QueryFolder(const Title: string; const StartFolder: string = '';

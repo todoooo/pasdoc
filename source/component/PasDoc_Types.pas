@@ -11,7 +11,7 @@ uses
 
 type
   TTextStreamPos = LongInt; //<int64?
-  { }
+  {Type of message in DoMessage. Mostly informal, errors raise an exception? }
   TPasDocMessageType = (pmtPlainText, pmtInformation, pmtWarning, pmtError);
   { }
 {$IFDEF old}

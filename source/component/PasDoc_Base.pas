@@ -204,9 +204,9 @@ type
     { All TPasUnit objects which have not been @@excluded from the documentation. }
     property DocUnits: TPasUnits read Options.DocUnits;
   { Item names for which no auto links are created. Loaded from file, if ever used.}
-  { Even when --auto-link is on, never automatically create links to identifiers
+  { Even when @--auto-link is on, never automatically create links to identifiers
     in the specified file. The file should contain one identifier on every line}
-  //cmd: --auto-link-exclude <file>
+  //@code(cmd: @--auto-link-exclude <file>)
     property AutoLinkExclude: TStringList read Options.AutoLinkExclude;
     // After @link(Execute) has been called, @name holds the conclusion.
     property Conclusion: TExternalItem read Options.Conclusion;
@@ -222,52 +222,52 @@ type
   published
   { Abbreviation file. Format is "[name] value", value is trimmed,
     lines that do not start with [ (or whitespace before that) are ignored
-  } //@code(cmd: –abbreviations <file>)
+  } //@code(cmd: -–abbreviations <file>)
     property Abbreviations: TStringList read Options.Abbreviations write SetAbbreviations;
   {Enable aspell, give language as parameter.
-  } //@code(cmd: --aspell <language>)
+  } //@code(cmd: @--aspell <language>)
     property AspellLanguage: string read Options.AspellLanguage write Options.AspellLanguage;
     {  Automatically deduce @abstract description of item from 1st sentence of it's full description.
       Quite obsolete now, a ShortDescription is used wherever appropriate.
-  } //@code(cmd: --auto-abstract)
+  } //@code(cmd: @--auto-abstract)
     property AutoAbstract: boolean read Options.AutoAbstract write Options.AutoAbstract;
     { Automatically turn your identifiers into links, without the need to enclose them in @link tag.
       See [http://pasdoc.sipsolutions.net/AutoLinkOption].
-  } //@code(cmd: --auto-link)
+  } //@code(cmd: @--auto-link)
     property AutoLink: boolean
       read Options.AutoLink write Options.AutoLink default false;
   {Cache directory for parsed files (default no caching)
-  } //@code(cmd: --cache-dir <dir>)
+  } //@code(cmd: @--cache-dir <dir>)
     property CacheDir: string read Options.CacheDir write Options.CacheDir;
   //Enable spell checking. Set when AspellLanguage is defined.
     property CheckSpelling: boolean read Options.CheckSpelling write Options.CheckSpelling
       default false;
   {Recognized comment markers.}
     //Parse only {<marker>, (*<marker> and //<marker> comments, unless MarkersOptional.
-    {  Overrides the staronly option, which is a shortcut for '–marker=**'.
-  } //@code(cmd: --marker)
+    {  Overrides the staronly option, which is a shortcut for @preformatted(-–marker=**).
+  } //@code(cmd: @--marker=<string>)
     property CommentMarkers: TStringList read Options.CommentMarkers write SetCommentMarkers;
   {Specify the name of a text file to use as conclusion in your documentation.
-  } //@code(cmd: --conclusion <file>)
+  } //@code(cmd: @--conclusion <file>)
     property ConclusionFileName: string read Options.ConclusionFileName
       write Options.ConclusionFileName;
   {Search for description files in this directory.
     To become path?
-  } //-@code(cmd: -?, --description_directory <dir>)
+  } //-@code(cmd: -?, @--description_directory <dir>)
     property DescriptionDirectory: string read Options.DescriptionDirectory
       write Options.DescriptionDirectory;
   {Read descriptions from these files.
-  } //@code(cmd: -R, --description <file>)
+  } //@code(cmd: -R, @--description <file>)
     property DescriptionFileNames: TStringVector
       read Options.DescriptionFileNames write SetDescriptionFileNames;
   { destination directory for documentation; must include terminating
     forward slash or backslash so that valid file names can be created
     by concatenating DestinationDirectory and a pathless file name
-  } //@code(cmd: -E, --output <path>)
+  } //@code(cmd: -E, @--output <path>)
     property DestinationDirectory: string read Options.DestDir write Options.DestDir;
   {Defined preprocessor symbols.
-  } //@code(cmd: -D, --define <symbol>)
-    //@code(cmd: -d, --conditionals <file>):  Read conditionals from this file.
+  } //@code(cmd: -D, @--define <symbol>)
+    //@code(cmd: -d, @--conditionals <file>):  Read conditionals from this file.
     property Directives: TStringVector read Options.Directives write SetDirectives;
     { Format of the document output file(s).
       Standard output format:
@@ -276,7 +276,7 @@ type
       latex (see LatexOutput)
       latex2rtf (see Latex2RtfOutput)
       xml (XML)
-  } //@code(cmd: -O, –format <format>)
+  } //@code(cmd: -O, -–format <format>)
     property DocType: string read Options.DocType write Options.DocType;
 
     { "generator info" are things that can change with each invocation of pasdoc,
@@ -296,124 +296,124 @@ type
       Setting this to false is useful for automatically comparing two
       versions of pasdoc's output (e.g. when trying to automate pasdoc's
       tests).
-  } //@code(cmd: -X, --exclude-generator)
+  } //@code(cmd: -X, @--exclude-generator)
     property GeneratorInfo: Boolean read Options.GeneratorInfo write Options.GeneratorInfo;
 
   {Whether the tokenizer should handle macros.
-  } //@code(cmd: --no-macro)
+  } //@code(cmd: @--no-macro)
     property HandleMacros: boolean
       read Options.HandleMacros write Options.HandleMacros default true;
   { How pasdoc should handle class members within default class visibility.
     See command-line option @--implicit-visibility documentation at
     [http://pasdoc.sipsolutions.net/ImplicitVisibilityOption].
     This will be passed to parser instance.
-  } //@code(cmd: --implicit-visibility)
+  } //@code(cmd: @--implicit-visibility)
     property ImplicitVisibility: TImplicitVisibility
       read Options.ImplicitVisibility write Options.ImplicitVisibility default ivPublic;
   {Ignore some leading characters from comment lines.
-  } //@code(cmd: --ignore-leading)
+  } //@code(cmd: @--ignore-leading)
     property IgnoreLeading: string read Options.IgnoreLeading write Options.IgnoreLeading;
   {Include search path.
-  } //@code(cmd: -I, --include <path>)
+  } //@code(cmd: -I, @--include <path>)
     property IncludeDirectories: TStringVector read Options.IncludeDirectories write
       SetIncludeDirectories;
   {Name of a text file to use as introduction in your documentation.
-  } //@code(cmd: --introduction)
+  } //@code(cmd: @--introduction)
     property IntroductionFileName: string read Options.IntroductionFileName
       write Options.IntroductionFileName;
   {Output language.
-  } //@code(cmd: -L, --language <name>)
+  } //@code(cmd: -L, @--language <name>)
     property LanguageID: TLanguageID read GetLanguage write SetLanguage
       default DEFAULT_LANGUAGE;
   { Add a link to GVClasses to the overview frame.
-  } //@code(cmd: --link-gv-classes)
+  } //@code(cmd: @--link-gv-classes)
     property LinkGraphVizClasses: string read Options.LinkGraphVizClasses
       write Options.LinkGraphVizClasses;
   { Add a link to the GVUses to the overview frame.
-  } //@code(cmd: --link-gv-uses)
+  } //@code(cmd: @--link-gv-uses)
     property LinkGraphVizUses: string read Options.LinkGraphVizUses
       write Options.LinkGraphVizUses;
   { How multipart links (like @link(Unit.Procedure)) look like in output.
     This controls @link(SearchLink) behavior, as described in
     [http://pasdoc.sipsolutions.net/LinkLookOption].
-  } //@code(cmd: --link-look)
-    //@code(cmd: --full-link): Obsolete name for --link-look=full option.
+  } //@code(cmd: @--link-look)
+    //@code(cmd: @--full-link): Obsolete name for @code(@--link-look=full) option.
     property LinkLook: TLinkLook read Options.LinkLook write Options.LinkLook;
   {Do (not) require the markers given in –marker but remove them from the comment if they exist.
-  } //@code(cmd: --marker-optional)
+  } //@code(cmd: @--marker-optional)
     property MarkerOptional: boolean read Options.MarkerOptional
       write Options.MarkerOptional default false;
 
     property OnMessage: TPasDocAppMessageEvent read Options.OnMessage write Options.OnMessage;
 
   { Write a GVClasses.dot file that can be used for the dot program from GraphViz to generate a class hierarchy graph.
-  } //@code(cmd: --graphviz-classes)
+  } //@code(cmd: @--graphviz-classes)
     property OutputGraphVizClassHierarchy: boolean
       read Options.GraphVizClasses write Options.GraphVizClasses default false;
   { Write a GVUses.dot file that can be used for the dot program from GraphViz to generate a unit dependency graph.
-  } //@code(cmd: --graphviz-uses)
+  } //@code(cmd: @--graphviz-uses)
     property OutputGraphVizUses: boolean read Options.GraphVizUses write Options.GraphVizUses default false;
   { The name PasDoc shall give to this documentation project,
       also used to name some of the output files.
-  } //@code(cmd: -N, --name <name>)
+  } //@code(cmd: -N, @--name <name>)
     property ProjectName: string read Options.ProjectName write Options.ProjectName;
   {Include / exclude class Members by visiblity.
-  } //@code(cmd: -M, --visible-members)
+  } //@code(cmd: -M, @--visible-members)
     property ShowVisibilities: TVisibilities read Options.ShowVisibilities write Options.ShowVisibilities;
   {Use single-char markers. "-" ignore, "<" back rem, ">" fwd rem (default)
-  } //@code(cmd: --single-char-markers)
+  } //@code(cmd: @--single-char-markers)
     property SingleCharMarkers: boolean read Options.SingleCharMarkers write Options.SingleCharMarkers;
 
   { Specifies what groups of items are sorted.
     See [http://pasdoc.sipsolutions.net/SortOption].
-  } //@code(cmd: --sort)
+  } //@code(cmd: @--sort)
     property SortSettings: TSortSettings
       read Options.SortSettings write Options.SortSettings default [];
   {Read source filenames from file.
-  } //@code(cmd: -S, –source <file>): "-" (single dash) means standard input.
+  } //@code(cmd: -S, -–source <file>): "-" (single dash) means standard input.
     property SourceFileNames: TStringVector read Options.SourceFileNames write
       SetSourceFileNames;
   {When spell-checking, ignore the words in this list.
-  } //@code(cmd: --spell-check-ignore-words <file>): The file should contain one word on every line.
+  } //@code(cmd: @--spell-check-ignore-words <file>): The file should contain one word on every line.
     property SpellCheckIgnoreWords: TStringList
       read Options.SpellCheckIgnoreWords write SetSpellCheckIgnoreWords;
   //Parse only {**, (*** and //** style comments.
-  //@code(cmd: --staronly)
+  //@code(cmd: @--staronly)
     property StarStyleOnly: boolean read GetStarStyle write SetStarStyle;
   { Title of documentation.
-  } //@code(cmd: -T, --title)
+  } //@code(cmd: -T, @--title)
     property Title: string read Options.Title write Options.Title;
   { Set log verbosity (0-6) [2].
-  } //@code(cmd: -v, –verbosity <level>)
+  } //@code(cmd: -v, -–verbosity <level>)
     property Verbosity: Cardinal read Options.Verbosity write Options.Verbosity
       default DEFAULT_VERBOSITY_LEVEL;
   {Write uses list of a unit into output.
-  } //@code(cmd: --write-uses-list)
+  } //@code(cmd: @--write-uses-list)
     property WriteUsesClause: boolean
       read Options.WriteUsesClause write Options.WriteUsesClause default false;
 
   {@groupbegin(html HTML Options)}
   {Read Contents for HTML-Help from file.
-  } //@code(cmd: –html-help-contents <file>)
+  } //@code(cmd: –-html-help-contents <file>)
     property ContentsFile: string read Options.ContentsFile write Options.ContentsFile;
   { Use the code of your cascading style sheet in replacement of default one.
-  } //@code(cmd: --css <file>)
+  } //@code(cmd: @--css <file>)
     property CSS: string read Options.CSS write Options.CSS stored False;
   {Include file as footer.
-  } //@code(cmd: -F, --footer)
+  } //@code(cmd: -F, @--footer)
     property Footer: string read Options.Footer write Options.Footer;
   {Include file as header.
-  } //@code(cmd: -H, --header)
+  } //@code(cmd: -H, @--header)
     property Header: string read Options.Header write Options.Header;
   {Put every item into its own file (Delphi online help format).
-  } //@code(cmd: --separate-files)
+  } //@code(cmd: @--separate-files)
     property ItemFiles: boolean read Options.ItemFiles write Options.ItemFiles;
   {Cause the html generator to create numeric filenames.
     Useful with ItemFiles, to prevent name clashes from overloaded subroutines.
-  } //@code(cmd: –numericfilenames)
+  } //@code(cmd: –-numericfilenames)
     property NumericFilenames: boolean read Options.NumericFilenames write Options.NumericFilenames;
   {Use tipue search engine in HTML output.
-  } //@code(cmd: --use-tipue-search)
+  } //@code(cmd: @--use-tipue-search)
     property UseTipueSearch: boolean read Options.UseTipueSearch write Options.UseTipueSearch;
   {<@groupend}
 
@@ -422,7 +422,7 @@ type
     Implied for latex2rtf document format. }
     property Latex2rtf: boolean read Options.Latex2rtf write Options.Latex2rtf;
   {Text that should be inserted into the preamble of a LaTeX file.
-  } //@code(cmd: –latex-head <file>)
+  } //@code(cmd: -–latex-head <file>)
     property LatexHead: TStrings read Options.LatexHead write Options.LatexHead;
   {<@groupend}
   end;

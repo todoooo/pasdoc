@@ -1203,13 +1203,9 @@ type
     FFields,
     FMethods,
     FProperties: TPasItems;
-  {$IFDEF old}
-    property FAncestors: TDescriptionItem read FHeritage write FHeritage;
-  {$ELSE}
   //heritage list
     //FHeritage: TDescriptionItem;
     FAncestors: TDescriptionItem;
-  {$ENDIF}
     function  GetClassDirective: TClassDirective;
   //group member(s) from the appropriate list.
     function DoGroup(how: eGroupAs; AItem: TPasItem;
@@ -1242,10 +1238,6 @@ type
     {@name is used to indicate whether a class is sealed or abstract.}
     property ClassDirective: TClassDirective //read FClassDirective write FClassDirective;
       read GetClassDirective;
-  {$IFDEF new}
-    function  ShortDeclaration: string; override;
-  {$ELSE}
-  {$ENDIF}
 
   //add item to members and to appropriate list
     procedure AddMember(item: TPasItem); override;
@@ -1287,7 +1279,7 @@ type
       and user didn't specify ancestor name at class declaration,
       and this class name is not 'TObject' (in case pasdoc parses the RTL),
       the Ancestors[0] will be set to 'TObject'. }
-    property Ancestors: TDescriptionItem read FAncestors; // FHeritage;
+    property Ancestors: TDescriptionItem read FAncestors;
 
     { This returns Ancestors.Objects[0], i.e. instance of the first ancestor of this Cio,
       or nil if it couldn't be found or Ancestors.Count = 0. }
@@ -2759,15 +2751,12 @@ begin
       FFields.SortKind := ssRecordFields;
     end;
   else //case
-  {$IFDEF old}
-    FHeritage.FTID := trHierarchy;
-  {$ELSE}
-    FAncestors := TDescriptionItem.Create('', '', trHierarchy, dkItemList);
-  {$ENDIF}
     FFields := NewList(trFields);
     FMethods := NewList(trMethods);
     FProperties := NewList(trProperties);
   end;
+//create ancestors even for records (for safe references)
+  FAncestors := TDescriptionItem.Create('', '', trHierarchy, dkItemList);
 end;
 
 destructor TPasCio.Destroy;
@@ -2866,19 +2855,6 @@ begin
   else
     Result := CT_NONE;
 end;
-
-{$IFDEF new}
-function TPasCio.ShortDeclaration: string;
-begin
-  Result := TokenName(Kind);
-  if Result <> '' then
-    Result := Result + ' ' + Name
-  else
-    Result := Name;
-end;
-{$ELSE}
-//obolete
-{$ENDIF}
 
 {$IFDEF new}
 //experimental - usage???
@@ -3025,6 +3001,7 @@ begin //BuildLinks
 //do we already have a valid link???
   FOutputFileName := FFullLink;
 //resolve ancestry
+  //if Ancestors = nil then DoLog('ancestry destroyed');
   for i := 0 to Ancestors.Count - 1 do begin
     item := Ancestors.ItemAt(i);
     if item.PasItem = nil then
