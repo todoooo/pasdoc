@@ -193,6 +193,7 @@ type
 
   (* parse qualified identifier, get first ident if fGet.  *)
     function  QualID(fGet: boolean; fOperator: boolean = False): TToken;
+    function  TypeID(fGet: boolean; fOperator: boolean = False): TToken;
 
   (* Create an item in CurScope, using the given identifier token.
     Make the new item the target for back-comments, i.e. store in DeclLast.
@@ -917,6 +918,22 @@ begin
   Result := Identifier;
 end;
 
+function TParser.TypeID(fGet, fOperator: boolean): TToken;
+begin
+(* Extend QualID to accept ...ident "<" identlist ">"
+*)
+  Result := QualID(fGet, fOperator);
+  if Skip(SYM_LESS_THAN) then begin
+    Result.Data := Result.Data + Token.Data;
+    repeat
+      Expect(TOK_IDENTIFIER);
+      Result.Data := Result.Data + Token.Data;
+    until not Skip(SYM_COMMA);
+    Expect(SYM_GREATER_THAN);
+    Result.Data := Result.Data + Token.Data;
+  end;
+end;
+
 function TParser.CreateItem(AClass: TPasItemClass; tt: TTokenType;
   Ident: TToken): TPasItem;
 begin
@@ -1238,7 +1255,7 @@ or
     repeat
     //start recording ancestor
       i.FullDeclaration := i.FullDeclaration + Recorded;
-      QualId(True); FreeAndNil(Identifier);
+      TypeId(True); FreeAndNil(Identifier);
       i.AddAncestor(Recorder);
     until not Skip(SYM_COMMA);
     Expect(SYM_RIGHT_PARENTHESIS);
@@ -1626,6 +1643,7 @@ decl can be
   { TODO : Treat <type>=<class> as class(<class>), for class tree construction
     and name search in ancestors. }
     NormalType := CreateItem(TPasType, KEY_TYPE, Identifier);
+    //NormalType := CreateItem(TPasType, KEY_TYPE, TypeID(False));
     SkipDeclaration(False, NormalType);
     NormalType.FullDeclaration := Recorded;
   end;
@@ -1782,7 +1800,8 @@ Take into account (nesting level) embedded:
   pairs of "()"
   structured type definitions (RECORD, CLASS? ..END)
     (best all CIO types)
-  pairs of "[]" (property index specifier
+  pairs of "[]" (property index specifier)
+  pairs of "<>" (generics)
 
   Terminate on nesting level 0, when either token is found:
   ";" ordinary declaration --> include following modifiers!?
@@ -1796,8 +1815,10 @@ Take into account (nesting level) embedded:
   Level := 0;
   repeat
     case GetNextToken of
+    SYM_LESS_THAN, //generics: <identlist>
     SYM_LEFT_BRACKET,
     SYM_LEFT_PARENTHESIS: Inc(Level);
+    SYM_GREATER_THAN,
     SYM_RIGHT_BRACKET,
     SYM_RIGHT_PARENTHESIS: Dec(Level);
     SYM_ROOF: //in const expr (value): ctrl-char. in type decl: ptr-to.

@@ -2796,9 +2796,17 @@ begin
 end;
 
 function TPasCio.AddAncestor(const AName: string): TDescriptionItem;
+var
+  n: string;
+  i: integer;
 begin
 //this is the old version, lacking ShortDeclaration
-  Result := Ancestors.AddNew(trNoTrans, dkDelegate, AName);
+  n := AName;
+//generics: strip type list
+  i := Pos('<', n);
+  if i > 0 then
+    SetLength(n, i-1);
+  Result := Ancestors.AddNew(trNoTrans, dkDelegate, n);
   //Result := TPasItem.Create();
 end;
 
