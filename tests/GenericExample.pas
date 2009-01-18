@@ -9,8 +9,6 @@ type
  { A simple Test-Object }
  TMyObject = class(TObject);
 
- TMyType = TObjectList<TMyObject>;
- 
  TMyGenericList = class(TObjectList<TMyObject>)
   public
    // To Something here

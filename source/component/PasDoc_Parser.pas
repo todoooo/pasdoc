@@ -5,17 +5,11 @@
   @author(Michalis Kamburelis)
   @author(Hans-Peter Diettrich <DrDiettrich1@aol.com>)
   @cvs($Date$)
-
-  Parsing implements most of the functionality of the pasdoc program.
-
-  It provides the @link(TParser) object, which scans the command line parameters
-  for file names and switches and then starts collecting information from those
-  files, issueing warnings to standard out if necessary. }
+}
 
 unit PasDoc_Parser;
 
 (* ToDo:
-- handle block comment (unchained)???
 - handle nested declarations (also: generators!)
 - parse implementation section
   (using declaration+definition positions, for methods)
@@ -104,15 +98,7 @@ type
 
     { The underlying scanner object. }
     Scanner: TScanner;
-
-  {$IFDEF old}
-    FOnMessage: TPasDocMessageEvent;
-    FVerbosity: Cardinal;
-    procedure DoMessage(const AVerbosity: Cardinal; const MessageType:
-      TPasDocMessageType; const AMessage: string; const AArguments: array of const);
-  {$ELSE}
     FDoc: TPasDoc;
-  {$ENDIF}
     procedure DoError(const AMessage: string;
       const AArguments: array of const);
 
@@ -428,16 +414,6 @@ procedure TParser.DoError(const AMessage: string;
 begin
   raise EPasDoc.Create(Scanner.GetStreamInfo + ': ' + AMessage, AArguments, 1);
 end;
-
-{$IFDEF old}
-procedure TParser.DoMessage(const AVerbosity: Cardinal; const MessageType:
-  TPasDocMessageType; const AMessage: string; const AArguments: array of const);
-begin
-  if (AVerbosity <= FVerbosity) and Assigned(FOnMessage) then
-    FOnMessage(MessageType, Format(AMessage, AArguments), AVerbosity);
-end;
-{$ELSE}
-{$ENDIF}
 
 { ---------------------------------------------------------------------------- }
 
@@ -1643,7 +1619,6 @@ decl can be
   { TODO : Treat <type>=<class> as class(<class>), for class tree construction
     and name search in ancestors. }
     NormalType := CreateItem(TPasType, KEY_TYPE, Identifier);
-    //NormalType := CreateItem(TPasType, KEY_TYPE, TypeID(False));
     SkipDeclaration(False, NormalType);
     NormalType.FullDeclaration := Recorded;
   end;
@@ -1801,7 +1776,7 @@ Take into account (nesting level) embedded:
   structured type definitions (RECORD, CLASS? ..END)
     (best all CIO types)
   pairs of "[]" (property index specifier)
-  pairs of "<>" (generics)
+  //pairs of "<>" (generics)
 
   Terminate on nesting level 0, when either token is found:
   ";" ordinary declaration --> include following modifiers!?
@@ -1815,10 +1790,10 @@ Take into account (nesting level) embedded:
   Level := 0;
   repeat
     case GetNextToken of
-    SYM_LESS_THAN, //generics: <identlist>
+    //SYM_LESS_THAN, //generics: <identlist>
     SYM_LEFT_BRACKET,
     SYM_LEFT_PARENTHESIS: Inc(Level);
-    SYM_GREATER_THAN,
+    //SYM_GREATER_THAN, //generics: <identlist>
     SYM_RIGHT_BRACKET,
     SYM_RIGHT_PARENTHESIS: Dec(Level);
     SYM_ROOF: //in const expr (value): ctrl-char. in type decl: ptr-to.
@@ -1858,7 +1833,7 @@ Take into account (nesting level) embedded:
     KEY_END: Dec(Level);
     KEY_CLASS, KEY_INTERFACE, KEY_DISPINTERFACE, KEY_OBJECT,
     KEY_RECORD: Inc(Level);
-    KEY_LIBRARY: if Assigned(CurItem) then //CurItem.IsLibrarySpecific := true;
+    KEY_LIBRARY: if Assigned(CurItem) then
       CurItem.HasAttribute[SD_LIBRARY_] := True; //translate keyword into pseudo directive
     TOK_IDENTIFIER:
       case Token.Directive of
@@ -1867,7 +1842,7 @@ Take into account (nesting level) embedded:
       end;
     end; //case
   until Level < 0;
-(* /regular description should always end with a ";",
+(* regular description should always end with a ";",
   even if a ")" or "END" was reached.
   Whitespace may have been added, after a ";"!
 *)
