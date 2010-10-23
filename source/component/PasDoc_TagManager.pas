@@ -280,7 +280,7 @@ type
   private
     FConvertString: TStringConverter;
     FAbbreviations: TStringList;
-    FOnMessage: TPasDocAppMessageEvent; //-TPasDocMessageEvent;
+    FOnMessage: TPasDocMessageEvent;
     FParagraph: string;
     FSpace: string;
     FShortDash, FEnDash, FEmDash: string;
@@ -320,11 +320,7 @@ type
       see e.g. TDocGenerator.DoMessageFromExpandDescription.
       Maybe in the future we will do some descendant of this class,
       like TTagManagerForPasItem. }
-  {$IFDEF old}
     property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
-  {$ELSE}
-    property OnMessage: TPasDocAppMessageEvent read FOnMessage write FOnMessage;
-  {$ENDIF}
 
     { This will be inserted on paragraph marker (two consecutive newlines,
       see wiki page WritingDocumentation) in the text.

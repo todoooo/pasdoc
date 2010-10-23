@@ -2,12 +2,7 @@ unit PasDoc_Aspell;
 
 interface
 
-uses
-  SysUtils, Classes,
-  PasDoc_ProcessLineTalk,
-  PasDoc_ObjectVector,
-  PasDoc_Base,
-  PasDoc_Types;
+uses SysUtils, Classes, PasDoc_ProcessLineTalk, PasDoc_ObjectVector, PasDoc_Types;
 
 type
   TSpellingError = class
@@ -28,20 +23,16 @@ type
     FProcess: TProcessLineTalk;
     FAspellMode: string;
     FAspellLanguage: string;
-  {$IFDEF old}
     FOnMessage: TPasDocMessageEvent;
+    
     procedure DoMessage(const AVerbosity: Cardinal;
       const MessageType: TPasDocMessageType; const AMessage: string);
-  {$ELSE}
-    FDoc: TPasDoc;
-  {$ENDIF}
-
   public
     { Values for AspellMode and AspellLanguage are the same as for
       aspell @--mode and @--lang command-line options.
       You can pass here '', then we will not pass appropriate
       command-line option to aspell. }
-    constructor Create(ADoc: TPasDoc; const AAspellMode, AAspellLanguage: string);
+    constructor Create(const AAspellMode, AAspellLanguage: string);
     destructor Destroy; override;
 
     property AspellMode: string read FAspellMode;
@@ -55,23 +46,19 @@ type
       one entry for each misspelled word.
       Offsets of TSpellingErrors will be relative to AString. }
     procedure CheckString(const AString: string; const AErrors: TObjectVector);
-
-  {$IFDEF old}
+    
     property OnMessage: TPasDocMessageEvent read FOnMessage write FOnMessage;
-  {$ELSE}
-  {$ENDIF}
   end;
 
 implementation
 
 uses PasDoc_Utils;
 
-constructor TAspellProcess.Create(ADoc: TPasDoc; const AAspellMode, AAspellLanguage: string);
+constructor TAspellProcess.Create(const AAspellMode, AAspellLanguage: string);
 var FirstAspellLine: string;
 begin
   inherited Create;
-
-  FDoc := ADoc;  
+  
   FAspellMode := AAspellMode;
   FAspellLanguage := AAspellLanguage;
   
@@ -168,19 +155,16 @@ begin
           messages start with "Error:". So we can possibly accidentaly
           skip some error messages from aspell. }
         if IsPrefix('Error:', S) then
-          FDoc.DoMessage(2, pmtWarning, 'Aspell error: ' + S, []);
+          DoMessage(2, pmtWarning, 'Aspell error: ' + S);
     end;
   until false;
 end;
 
-{$IFDEF old}
-procedure TAspellProcess.DoMessage(const AVerbosity: Cardinal;
+procedure TAspellProcess.DoMessage(const AVerbosity: Cardinal; 
   const MessageType: TPasDocMessageType;  const AMessage: string);
 begin
   if Assigned(FOnMessage) then
     FOnMessage(MessageType, AMessage, AVerbosity);
 end;
-{$ELSE}
-{$ENDIF}
 
 end.

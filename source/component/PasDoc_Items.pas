@@ -1546,7 +1546,7 @@ function IsEmpty(item: TDescriptionList): boolean; overload;
 
 var
 //For debugging only. To be set by the application.
-  Logger: TPasDocAppMessageEvent;
+  Logger: TPasDocMessageEvent;
 
 implementation
 

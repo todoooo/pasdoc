@@ -84,7 +84,7 @@ type
     LinkGraphVizUses: string;
     LinkGraphVizClasses: string;
 
-    OnMessage: TPasDocAppMessageEvent; //-TPasDocMessageEvent;
+    OnMessage: TPasDocMessageEvent;
     { Name of the project to create. }
     ProjectName: string;
     SourceFileNames: TStringVector;
@@ -344,7 +344,7 @@ type
     property MarkerOptional: boolean read Options.MarkerOptional
       write Options.MarkerOptional default false;
 
-    property OnMessage: TPasDocAppMessageEvent read Options.OnMessage write Options.OnMessage;
+    property OnMessage: TPasDocMessageEvent read Options.OnMessage write Options.OnMessage;
 
   { Write a GVClasses.dot file that can be used for the dot program from GraphViz to generate a class hierarchy graph.
   } //@code(cmd: @--graphviz-classes)

@@ -2579,10 +2579,10 @@ begin
   { Make sure that previous aspell process is closed }
   FreeAndNil(FAspellProcess);
 
-  if CheckSpelling then
+  if CheckSpelling then 
   begin
     try
-      FAspellProcess := TAspellProcess.Create(self, AMode, AspellLanguage);
+      FAspellProcess := TAspellProcess.Create(AMode, AspellLanguage);
     except
       on E: Exception do
       begin
@@ -2591,9 +2591,9 @@ begin
         Exit;
       end;
     end;
-
-    //FAspellProcess.OnMessage := OnMessage;
-
+    
+    FAspellProcess.OnMessage := OnMessage;
+    
     WordsToIgnore := TStringList.Create;
     try
       WordsToIgnore.Sorted := True;
