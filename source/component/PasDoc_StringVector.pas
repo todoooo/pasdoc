@@ -53,21 +53,13 @@ type
   end;
 
 function NewStringVector: TStringVector;
-{$IFDEF old}
-function StringVectorIsNilOrEmpty(const AOV: TStringVector): boolean;
-{$ELSE}
 function IsEmpty(const AOV: TStringVector): boolean; overload;
-{$ENDIF}
 
 implementation
 uses
   SysUtils, PasDoc_Serialize;
 
-{$IFDEF old}
-function StringVectorIsNilOrEmpty(const AOV: TStringVector): boolean;
-{$ELSE}
 function IsEmpty(const AOV: TStringVector): boolean;
-{$ENDIF}
 begin
   Result := not Assigned(AOV) or (AOV.Count = 0);
 end;
