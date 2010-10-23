@@ -181,7 +181,7 @@ type
   public
     property ItemSpacing: TListItemSpacing read FItemSpacing;
     property ListType: TListType read FListType;
-    constructor Create(AOwnsObject: boolean); override;
+    constructor Create(const AOwnsObject: boolean); override;
   end;
 
   { Collected information about @@row (or @@rowHead). }
@@ -887,7 +887,7 @@ end;
 
 { TListData ----------------------------------------------------------------- }
 
-constructor TListData.Create(AOwnsObject: boolean);
+constructor TListData.Create(const AOwnsObject: boolean);
 begin
   inherited;
   FItemSpacing := lisParagraph;

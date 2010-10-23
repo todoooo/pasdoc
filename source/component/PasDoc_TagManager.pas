@@ -295,7 +295,7 @@ type
     function TryAutoLink(const QualifiedIdentifier: TNameParts;
       out QualifiedIdentifierReplacement: string): boolean;
   public
-    constructor Create(AOwnsObject: boolean = False); override;
+    constructor Create(const AOwnsObject: boolean = False); override;
     destructor Destroy; override;
     //exclued cached tags
     procedure Clear; override;
@@ -478,8 +478,6 @@ type
           
           The goal is to make execution with PreExecute set to @true
           as fast as possible.)
-
-        @item(The converted string is discarded. (Really???))
       ) }
     property PreExecute: boolean
       read FPreExecute write FPreExecute;
@@ -521,7 +519,6 @@ procedure TTag.Execute(var ThisTagData: TObject;
   EnclosingTag: TTag; var EnclosingTagData: TObject;
   const TagParameter: string; var ReplaceStr: string);
 begin
-assert(self <> nil, 'bad call');
   if Assigned(OnExecute) then
     OnExecute(Self, ThisTagData, EnclosingTag, EnclosingTagData,
       TagParameter, ReplaceStr);
@@ -578,9 +575,9 @@ end;
 
 { TTagManager ------------------------------------------------------------ }
 
-constructor TTagManager.Create(AOwnsObject: boolean);
+constructor TTagManager.Create(const AOwnsObject: boolean);
 begin
-  inherited Create(False);
+  inherited Create(AOwnsObject);
   FParagraph := ' ';  // #$0B; //=VT //' ';
   FSpace := ' ';
   FShortDash := '-';

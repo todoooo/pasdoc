@@ -1,5 +1,4 @@
 {
-  @cvs($Date$)
   @author(Johannes Berg <johannes@sipsolutions.de>)
   @author(Michalis Kamburelis)
   a simple object vector
@@ -16,10 +15,9 @@ type
   public
     { This is only to make constructor virtual, while original
       TObjectList has a static constructor. }
-    constructor Create(AOwnsObject: boolean); virtual;
-{$IFDEF fpc}
-{$ELSE}
-  //fix bug in D7 TList.Sort
+    constructor Create(const AOwnsObject: boolean); virtual;
+{$IFNDEF FPC}
+    // Fix bug in D7 TList.Sort.
     procedure Sort(Compare: TListSortCompare); reintroduce;
 {$ENDIF}
   end;
@@ -38,13 +36,12 @@ end;
 
 { TObjectVector }
 
-constructor TObjectVector.Create(AOwnsObject: boolean);
+constructor TObjectVector.Create(const AOwnsObject: boolean);
 begin
   inherited Create(AOwnsObject);
 end;
 
-{$IFDEF fpc}
-{$ELSE}
+{$IFNDEF FPC}
 procedure TObjectVector.Sort(Compare: TListSortCompare);
 begin
   if Count <= 1 then

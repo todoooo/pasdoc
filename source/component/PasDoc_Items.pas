@@ -844,7 +844,7 @@ type
     procedure Serialize(const ADestination: TStream);
     procedure Deserialize(const ASource: TStream);
   public
-    constructor Create(AOwnsObject: Boolean); override;
+    constructor Create(const AOwnsObject: Boolean); override;
     destructor Destroy; override;
 
     { Compares each element's name field with Name and returns the item on
@@ -2555,7 +2555,7 @@ end;
 
 { TBaseItems ----------------------------------------------------------------- }
 
-constructor TBaseItems.Create(AOwnsObject: Boolean);
+constructor TBaseItems.Create(const AOwnsObject: Boolean);
 begin
   inherited;
   FHash := TObjectHash.Create;
