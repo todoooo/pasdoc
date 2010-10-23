@@ -256,6 +256,8 @@ type
     PasDoc1: TPasDoc;
     procedure CreateWnd; override;
   public
+    DefaultDirectives: TStringList;
+
     // @name is @true when the user has changed the project settings.
     // Otherwise it is @false.
     property Changed: boolean read FChanged write SetChanged;
@@ -275,8 +277,6 @@ type
 
       This follows GNOME HIG standard for window caption. }
     function SettingsFileNameNice: string;
-
-    DefaultDirectives: TStringList;
   end;
 
 var
@@ -285,22 +285,8 @@ var
 
 implementation
 
-uses
-  PasDoc_SortSettings, frmAboutUnit,
-{$IFDEF help}
-  HelpProcessor,
-  {$IFDEF WIN32}
-    ShellAPI,
-  {$ELSE}
-    WWWBrowserRunnerDM,
-  {$ENDIF}
-{$ELSE}
-  {$IFDEF WIN32}
-    ShellAPI,
-  {$ELSE}
-  {$ENDIF}
-{$ENDIF}
-  PreferencesFrm, PasDocGuiSettings;
+uses PasDoc_SortSettings, frmAboutUnit, HelpProcessor,
+  WWWBrowserRunnerDM, PreferencesFrm, PasDocGuiSettings;
 
 procedure TfrmHelpGenerator.PasDoc1Warning(const MessageType: TPasDocMessageType;
   const AMessage: string; const AVerbosity: Cardinal);
@@ -360,12 +346,7 @@ end;
 
 procedure TfrmHelpGenerator.ButtonURLClick(Sender: TObject);
 begin
-{$IFDEF WIN32}
-{ TODO : RunBrowser?
- }
-{$ELSE}
   WWWBrowserRunner.RunBrowser((Sender as TButton).Caption);
-{$ENDIF}
 end;
 
 procedure TfrmHelpGenerator.FormDestroy(Sender: TObject);
@@ -1087,22 +1068,8 @@ begin
         [mbOK], 0);
     end;
 
-  {$IFDEF old}
-    if PasDoc1.Generator is TGenericHTMLDocGenerator then
-      WWWBrowserRunner.RunBrowser(
-        HtmlDocGenerator.DestinationDirectory + 'index.html');
-  {$ELSE}
-    if PasDoc1.MasterFile <> '' then begin
-    {$IFDEF WIN32}
-      ShellExecute(Self.Handle, 'open',
-        PChar(PasDoc1.MasterFile), nil, nil,
-        SW_SHOWNORMAL);
-    {$ELSE}
-      WWWBrowserRunner.RunBrowser(
-        HtmlDocGenerator.DestinationDirectory + 'index.html');
-    {$ENDIF}
-    end;
-  {$ENDIF}
+    if PasDoc1.MasterFile <> '' then
+      WWWBrowserRunner.RunBrowser(PasDoc1.MasterFile);
   finally
     Screen.Cursor := crDefault;
   end;

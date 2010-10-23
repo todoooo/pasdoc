@@ -28,23 +28,10 @@ uses
 function GetHelpControl(const HelpRequestControl: TControl;
   out HasHelpControl: TControl): boolean;
 
-procedure BrowseWeb(const URL: string);
-
 implementation
 
-{$IFDEF WIN32}
-uses Windows, ShellAPI;
-{$ELSE}
-{$ENDIF}
 type
   TCustomLabelCracker = class(TCustomLabel);
-
-procedure BrowseWeb(const URL: string);
-begin
-  ShellExecute(0, 'open',
-    PChar(URL), nil, nil,
-    SW_SHOWNORMAL);
-end;
 
 function GetHelpControl(const HelpRequestControl: TControl;
   out HasHelpControl: TControl): boolean;

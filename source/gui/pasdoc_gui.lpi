@@ -2,18 +2,18 @@
 <CONFIG>
   <ProjectOptions>
     <PathDelim Value="\"/>
-    <Version Value="6"/>
+    <Version Value="7"/>
     <General>
       <Flags>
         <SaveClosedFiles Value="False"/>
         <SaveOnlyProjectUnits Value="True"/>
+        <LRSInOutputDirectory Value="False"/>
       </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
       <Title Value="pasdoc_gui"/>
       <UseAppBundle Value="False"/>
-      <ActiveEditorIndexAtStart Value="2"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -57,30 +57,28 @@
       </Unit0>
       <Unit1>
         <Filename Value="frmhelpgeneratorunit.pas"/>
-        <ComponentName Value="frmHelpGenerator"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmHelpGenerator"/>
         <ResourceBaseClass Value="Form"/>
-        <ResourceFilename Value="frmhelpgeneratorunit.lrs"/>
         <UnitName Value="frmHelpGeneratorUnit"/>
-        <CursorPos X="1" Y="1622"/>
-        <TopLine Value="1588"/>
+        <CursorPos X="35" Y="1072"/>
+        <TopLine Value="1064"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="101"/>
         <Bookmarks Count="1">
-          <Item0 X="1" Y="337" ID="1"/>
+          <Item0 X="1" Y="323" ID="1"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="frmaboutunit.pas"/>
-        <ComponentName Value="frmAbout"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmAbout"/>
         <ResourceBaseClass Value="Form"/>
-        <ResourceFilename Value="frmaboutunit.lrs"/>
         <UnitName Value="frmAboutUnit"/>
         <CursorPos X="12" Y="61"/>
         <TopLine Value="57"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="101"/>
         <Loaded Value="True"/>
       </Unit2>
@@ -88,22 +86,21 @@
         <Filename Value="helpprocessor.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="HelpProcessor"/>
-        <CursorPos X="17" Y="44"/>
+        <CursorPos X="1" Y="35"/>
         <TopLine Value="22"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="4"/>
         <UsageCount Value="37"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="preferencesfrm.pas"/>
-        <ComponentName Value="Preferences"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="Preferences"/>
         <ResourceBaseClass Value="Form"/>
-        <ResourceFilename Value="preferencesfrm.lrs"/>
         <UnitName Value="PreferencesFrm"/>
-        <CursorPos X="1" Y="74"/>
-        <TopLine Value="31"/>
-        <EditorIndex Value="7"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="3"/>
         <UsageCount Value="36"/>
         <Loaded Value="True"/>
       </Unit4>
