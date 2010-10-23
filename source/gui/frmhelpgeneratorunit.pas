@@ -524,8 +524,6 @@ begin
       lgBosnian: result := 'bs';
       lgBrasilian: result := 'pt';  // Portuguese used for brazilian.
       lgCatalan: result := 'ca';
-      {lgChinese_950: raise EInvalidSpellingLanguage.Create(
-        'Sorry, that language is not supported for spell checking'); }
       lgDanish: result := 'da';
       lgDutch: result := 'nl';
       lgEnglish: result := 'en';
@@ -1505,7 +1503,6 @@ procedure TfrmHelpGenerator.MenuContextHelpClick(Sender: TObject);
 var
   HelpControl: TControl;
 begin
-{$IFDEF help}
   HelpControl := nil;
   if (Sender is TMenuItem) or (Sender = lbNavigation) then
   begin
@@ -1523,8 +1520,6 @@ begin
     WWWBrowserRunner.RunBrowser(
       WWWHelpServer + HelpControl.HelpKeyword);
   end;
-{$ELSE}
-{$ENDIF}
 end;
 
 procedure TfrmHelpGenerator.MenuGenerateRunClick(Sender: TObject);
