@@ -160,4 +160,3 @@ initialization
 finalization
   GClassNames.Free;
 end.
- 
