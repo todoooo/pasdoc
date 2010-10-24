@@ -134,7 +134,6 @@ type
 *)
   TPasDoc = class(TComponent)
   protected
-    FDoc: TPasDoc;  //<nil if not owned
     Options: TOptionRec;
   {@groupbegin(setopts Option Setters)}
     function  GetLanguage: TLanguageID;
@@ -638,15 +637,8 @@ end;
 { TPasDocBase }
 
 constructor TPasDoc.Create(AOwner: TComponent);
-var
-  doc: TPasDoc absolute AOwner;
 begin
   inherited;
-  if AOwner is TPasDoc then begin
-  //Created by TPasDoc
-    FDoc := doc; //signal "owned" in destructor
-    Options := doc.Options; //copy options, don't own them
-  end else begin
   //stand alone version, of TPasDoc or an independent generator
   //Set default property values, init Options objects
     Options.Abbreviations := TStringList.Create;
@@ -668,12 +660,10 @@ begin
     Options.SourceFileNames := TStringVector.Create;
     Options.SpellCheckIgnoreWords := TStringList.Create;
     Options.Verbosity := DEFAULT_VERBOSITY_LEVEL;
-  end;
 end;
 
 destructor TPasDoc.Destroy;
 begin
-  if FDoc = nil then begin //not owned, destroy option objects
     FreeAndNil(Options.Abbreviations);
     FreeAndNil(Options.AutoLinkExclude);
     FreeAndNil(Options.CommentMarkers);
@@ -688,7 +678,6 @@ begin
     FreeAndNil(Options.SpellCheckIgnoreWords);
   //debug how? (bug seems to be fixed :-)
     FreeAndNil(Options.AllUnits);
-  end;
   inherited;
 end;
 
