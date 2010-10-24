@@ -326,7 +326,7 @@ type
   {$ENDIF}
   protected
   //how to sort this list.
-    SortKind: TCollectionSortKind;
+    SortKind: TSortSetting;
   public
   //add item, possibly into hash list.
     function  Add(const AObject: TDescriptionItem): integer; virtual;
@@ -2705,14 +2705,7 @@ end;
 
 procedure TPasItems.SortDeep(const SortSettings: TSortSettings);
 begin
-(* This is the general sort, called as FUnits.SortDeep.
-  We delegate sorting to the items in the list.
-  Check SortSettings for sorting Self and Items.
-  Only CIOs may deserve sorting of their members.
-*)
-  if (SortKind = ssAlways) or (SortKind in SortSettings) then
-    SortShallow;
-  //if SortKind = ssCIOs then //We are Borg^w CIOs ;-)
+  SortShallow;
   SortOnlyInsideItems(SortSettings);
 end;
 
