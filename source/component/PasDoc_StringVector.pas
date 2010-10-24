@@ -27,11 +27,7 @@ type
     function ExistsNameCI(const AName: string): boolean;
     function IsEmpty: boolean;
     procedure Iterate(const AItFunc: TIterateFunc);
-  {$IFDEF old}
-    procedure AddNotExisting(const AString: string);
-  {$ELSE}
-    function  AddNotExisting(const AString: string): integer;
-  {$ENDIF}
+    function AddNotExisting(const AString: string): Integer;
 
     { This loads our contents (i.e. Count and Items[] values)
       from a stream using the binary format
@@ -61,7 +57,7 @@ uses
 
 function IsEmpty(const AOV: TStringVector): boolean;
 begin
-  Result := not Assigned(AOV) or (AOV.Count = 0);
+  Result := (not Assigned(AOV)) or (AOV.Count = 0);
 end;
 
 function NewStringVector: TStringVector;
@@ -72,11 +68,7 @@ end;
 
 { TStringVector }
 
-{$IFDEF old}
-procedure TStringVector.AddNotExisting(const AString: string);
-{$ELSE}
 function TStringVector.AddNotExisting(const AString: string): integer;
-{$ENDIF}
 begin
   Result := IndexOf(AString);
   if Result < 0 then begin
