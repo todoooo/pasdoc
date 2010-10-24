@@ -1,0 +1,223 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
+    <General>
+      <Flags>
+        <SaveClosedFiles Value="False"/>
+        <MainUnitHasUsesSectionForAllUnits Value="False"/>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+      </Flags>
+      <MainUnit Value="0"/>
+      <IconPath Value=".\"/>
+      <TargetFileExt Value=""/>
+      <Title Value="pasdoc"/>
+      <ActiveEditorIndexAtStart Value="0"/>
+    </General>
+    <PublishOptions>
+      <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <CommandLineParams Value="..\ok_complicated_record.pas"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+        <WorkingDirectory Value="D:\SourceForge\pasdocOld\branches\PasDoc2\tests\html"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="pasdoc_package"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="12">
+      <Unit0>
+        <Filename Value="pasdoc.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="1" Y="37"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="25"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="PasDoc_Main.pas"/>
+        <UnitName Value="PasDoc_Main"/>
+        <CursorPos X="1" Y="580"/>
+        <TopLine Value="558"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\component\PasDoc_GenHtml.pas"/>
+        <UnitName Value="PasDoc_GenHtml"/>
+        <CursorPos X="1" Y="797"/>
+        <TopLine Value="775"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\component\PasDoc_GenHtmlHelp.pas"/>
+        <UnitName Value="PasDoc_GenHtmlHelp"/>
+        <CursorPos X="23" Y="26"/>
+        <TopLine Value="4"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\component\PasDoc_Base.pas"/>
+        <UnitName Value="PasDoc_Base"/>
+        <CursorPos X="1" Y="340"/>
+        <TopLine Value="313"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\component\PasDoc_Items.pas"/>
+        <UnitName Value="PasDoc_Items"/>
+        <CursorPos X="1" Y="1785"/>
+        <TopLine Value="1763"/>
+        <EditorIndex Value="6"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\component\PasDoc_Types.pas"/>
+        <UnitName Value="PasDoc_Types"/>
+        <CursorPos X="5" Y="194"/>
+        <TopLine Value="159"/>
+        <EditorIndex Value="11"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\..\..\..\..\lazarus\fpc\2.2.0\source\rtl\inc\objpash.inc"/>
+        <CursorPos X="21" Y="156"/>
+        <TopLine Value="134"/>
+        <EditorIndex Value="5"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\component\PasDoc_StringVector.pas"/>
+        <UnitName Value="PasDoc_StringVector"/>
+        <CursorPos X="3" Y="19"/>
+        <TopLine Value="17"/>
+        <EditorIndex Value="10"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\..\..\..\..\lazarus\fpc\2.2.0\source\rtl\inc\objpas.inc"/>
+        <CursorPos X="1" Y="152"/>
+        <TopLine Value="130"/>
+        <EditorIndex Value="7"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\..\..\..\..\..\lazarus\fpc\2.2.0\source\packages\fcl-base\src\inc\contnrs.pp"/>
+        <UnitName Value="contnrs"/>
+        <CursorPos X="1" Y="705"/>
+        <TopLine Value="683"/>
+        <EditorIndex Value="8"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="..\..\..\..\..\..\lazarus\fpc\2.2.0\source\rtl\objpas\classes\lists.inc"/>
+        <CursorPos X="1" Y="418"/>
+        <TopLine Value="396"/>
+        <EditorIndex Value="9"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit11>
+    </Units>
+    <JumpHistory Count="5" HistoryIndex="4">
+      <Position1>
+        <Filename Value="..\..\..\..\..\..\lazarus\fpc\2.2.0\source\rtl\inc\objpas.inc"/>
+        <Caret Line="152" Column="1" TopLine="130"/>
+      </Position1>
+      <Position2>
+        <Filename Value="..\component\PasDoc_GenHtml.pas"/>
+        <Caret Line="797" Column="1" TopLine="775"/>
+      </Position2>
+      <Position3>
+        <Filename Value="PasDoc_Main.pas"/>
+        <Caret Line="580" Column="1" TopLine="558"/>
+      </Position3>
+      <Position4>
+        <Filename Value="..\component\PasDoc_Base.pas"/>
+        <Caret Line="340" Column="1" TopLine="313"/>
+      </Position4>
+      <Position5>
+        <Filename Value="..\component\PasDoc_Items.pas"/>
+        <Caret Line="1785" Column="1" TopLine="1763"/>
+      </Position5>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <SearchPaths>
+      <IncludeFiles Value="..\component\"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <IncludeAssertionCode Value="True"/>
+        <CStyleMacros Value="True"/>
+        <UseAnsiStrings Value="True"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <Checks>
+        <IOChecks Value="True"/>
+        <RangeChecks Value="True"/>
+        <OverflowChecks Value="True"/>
+        <StackChecks Value="True"/>
+      </Checks>
+      <Generate Value="Faster"/>
+    </CodeGeneration>
+    <Other>
+      <Verbosity>
+        <ShowHints Value="False"/>
+      </Verbosity>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <BreakPoints Count="2">
+      <Item1>
+        <Source Value="pasdoc.dpr"/>
+        <Line Value="41"/>
+      </Item1>
+      <Item2>
+        <Source Value="pasdoc.dpr"/>
+        <Line Value="37"/>
+      </Item2>
+    </BreakPoints>
+    <Watches Count="1">
+      <Item1>
+        <Expression Value="Options"/>
+      </Item1>
+    </Watches>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="ECodetoolError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EFOpenError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
