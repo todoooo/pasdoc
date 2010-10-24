@@ -12,14 +12,6 @@ The @link(PasDoc_Scanner) unit does the same (it actually uses this unit's
 tokenizer), with the exception that it evaluates compiler directives,
 which are comments that start with a dollar sign. }
 
-
-(* Define this only when separate Token.Data and .CommentContent are required.
-  CommentContent is only used in comment tokens, otherwise empty.
-  For such tokens, the .Data part can be reconstructed easily, if ever required.
-*)
-{-$Define Content}
-
-
 unit PasDoc_Tokenizer;
 
 {$I pasdoc_defines.inc}
@@ -489,16 +481,10 @@ begin
       if c = #10 then Inc(Row);
       CommentContent := CommentContent + c; // TODO: Speed up!
     until c = '}';
-
-  {$IFDEF Content}
+    
     Data := '{' + CommentContent;
     (* Remove last '}' from CommentContent *)
     SetLength(CommentContent, Length(CommentContent) - 1);
-  {$ELSE}
-    //data is identical with CommentContent
-    (* Remove last '}' from CommentContent *)
-    SetLength(Data, Length(Data) - 1);
-  {$ENDIF}
   end;
 end;
 
@@ -522,14 +508,9 @@ begin
       if c = ')' then
         begin
           ConsumeChar;
-        {$IFDEF Content}
           Result.Data := '(*' + Result.CommentContent + ')';
           { Remove last '*' from Result.CommentContent }
           SetLength(Result.CommentContent, Length(Result.CommentContent) - 1);
-        {$ELSE}
-          { Remove last '*' from Result.CommentContent }
-          SetLength(Result.Data, Length(Result.Data) - 1);
-        {$ENDIF}
           Break;
         end;
     end;
@@ -556,10 +537,7 @@ begin
       end;
     end;
 
-  {$IFDEF Content}
     Data := '//' + CommentContent;
-  {$ELSE}
-  {$ENDIF}
   end;
 end;
 

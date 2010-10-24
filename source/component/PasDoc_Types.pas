@@ -401,12 +401,7 @@ type
       or is TOK_DIRECTIVE.
       This is the text within the comment @italic(without) comment delimiters.
       For TOK_DIRECTIVE you can safely assume that CommentContent[1] = '$'. }
-  {$IFDEF Content}
     CommentContent: string;
-  {$ELSE}
-    property CommentContent: string read Data write Data;
-    property Content: string read Data;
-  {$ENDIF}
 
     { Create a token of and assign the argument token type to @link(MyType) }
     constructor Create(const TT: TTokenType);
