@@ -793,7 +793,6 @@ var
   InvalidType, WasDeprecatedDirective: boolean;
 begin
   t := nil;
-  WasDeprecatedDirective := false;
   M := TPasMethod.Create;
   try
     M.RawDescriptionInfo^ := RawDescriptionInfo;
